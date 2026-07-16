@@ -1,129 +1,160 @@
-# Elevator System - Low Level Design
+# Elevator System - Low Level Design (LLD)
 
-This document provides a comprehensive Low-Level Design (LLD) for an Elevator System, formatted as an explanation you would deliver during a Microsoft SDE-2 interview.
+This document provides a comprehensive Low-Level Design (LLD) for an Elevator System, structured exactly how you should explain it in a Microsoft SDE-2 interview.
+
+---
 
 ## 1. Requirements & Problem Statement
 
 **Interviewer:** *"Design an Elevator System for a multi-story building."*
 
-**Clarifying Requirements (The "What"):**
-- **Multiple Elevators:** The system must manage multiple elevators (e.g., 2 or more).
-- **Requests (Calls):**
-  - **External Requests (Hall Calls):** A user presses 'Up' or 'Down' from a specific floor.
-  - **Internal Requests (Cabin Calls):** A user inside the elevator presses a floor number to go to.
-- **Dispatching:** When a hall call is made, the system should optimally dispatch an elevator.
-- **State Management:** Elevators must know their current floor, direction (Moving Up, Moving Down, Idle), and process requests accordingly.
-- **Concurrency:** Elevators move concurrently and handle requests in real-time.
+**Candidate (You):** *"Before jumping into the design, I'd like to clarify a few requirements to scope the system correctly."*
+*   **Capacity:** Are we designing for a single elevator or multiple? *(Assume Multiple)*
+*   **Request Types:** Will the system handle both external requests (people waiting at a floor pressing Up/Down) and internal requests (people inside the elevator pressing floor numbers)? *(Yes, both)*
+*   **Dispatching Algorithm:** Should the system just assign any elevator, or should it try to be optimal (e.g., nearest elevator)? *(Let's go with a nearest-elevator strategy for now, but keep it extensible)*
+*   **Concurrency:** I assume elevators should move concurrently in real-time? *(Yes)*
+
+**Summary of Scope:** A multi-elevator system handling concurrent internal and external requests, using a pluggable dispatch strategy, with clear state management for each elevator.
 
 ---
 
 ## 2. Core Entities and Architecture
 
-To solve this modularly and follow SOLID principles, I broke the system down into a few core entities:
+To solve this modularly, I will break down the system into the following core entities:
 
-- `ElevatorSystem`: The central manager. It orchestrates the assignment of external requests to the elevators.
-- `Elevator`: Represents a single physical elevator. Each elevator is its own independently running thread.
-- `Request`: Models a user request, tracking the floor, direction, and source (Internal vs. External).
-- `ElevatorState`: The behavior of the elevator depending on if it is Idle, Moving Up, or Moving Down.
-- `ElevatorSelectionStrategy`: The algorithm used by the `ElevatorSystem` to decide which elevator should serve an external request.
-
----
-
-## 3. Design Principles and Patterns Used (The "How" & "Why")
-
-In an SDE-2 interview, explaining *why* you chose a pattern is as important as the pattern itself.
-
-### 1. Facade Pattern (`ElevatorSystem`)
-- **Why:** The client (e.g., the building's physical buttons) shouldn't worry about the complex logic of selecting elevators or managing thread pools.
-- **Implementation:** `ElevatorSystem` acts as a unified interface (`requestElevator`, `selectFloor`). It hides the complexity of dispatching requests and delegating to individual `Elevator` instances.
-
-### 2. Singleton Pattern (`ElevatorSystem`)
-- **Why:** There should only be one central controller for a building to avoid conflicting instructions and maintain a single source of truth.
-- **Implementation:** `ElevatorSystem.getInstance(numElevators)` ensures exactly one system instance is created.
-
-### 3. State Pattern (`ElevatorState`)
-- **Why:** An elevator behaves differently based on its state. If it's going UP, it should prioritize higher floors. If IDLE, it can change direction. Avoids massive `if-else` blocks in the move logic.
-- **Implementation:** I defined an `ElevatorState` interface with classes `IdleState`, `MovingUpState`, and `MovingDownState`. Each state dictates how an `Elevator` processes a new request and what its next move is.
-
-### 4. Strategy Pattern (`ElevatorSelectionStrategy`)
-- **Why:** The algorithm for dispatching an elevator can change (e.g., Nearest Elevator, Least Loaded Elevator, Round Robin). We want this to be pluggable without modifying the core system.
-- **Implementation:** The `ElevatorSystem` uses an `ElevatorSelectionStrategy` interface. Currently, we inject `NearestElevatorStrategy`, but we can easily swap it out later.
-
-### 5. Observer Pattern (`ElevatorObserver` & `ElevatorDisplay`)
-- **Why:** We need to display the status of the elevators on a digital screen. The display should update automatically whenever an elevator changes its state or floor.
-- **Implementation:** `Elevator` acts as the Subject. `ElevatorDisplay` implements `ElevatorObserver`. Whenever the elevator moves, it calls `notifyObservers()`.
+1.  **`ElevatorSystem`:** The central dispatcher (Singleton). It takes external requests and routes them to the best elevator.
+2.  **`Elevator`:** Represents a single physical elevator. Each elevator runs on its own thread. It maintains its own queue of requests (`upRequests` and `downRequests`).
+3.  **`Request`:** A model class representing a user's request (Target Floor, Direction, Source: Internal/External).
+4.  **`ElevatorState`:** Interface managing the behavior of the elevator based on its current state (Idle, Moving Up, Moving Down).
+5.  **`ElevatorSelectionStrategy`:** An algorithm interface used by the system to decide which elevator serves an external request.
+6.  **`ElevatorDisplay` / `ElevatorObserver`:** Handles showing the current floor and direction to the users.
 
 ---
 
-## 4. Concurrency & Multithreading (Crucial for SDE-2)
+## 3. Design Principles and Patterns Used
 
-- **Independent Threads:** Each `Elevator` implements `Runnable` and is submitted to an `ExecutorService` inside the `ElevatorSystem`. This allows all elevators to operate and move concurrently.
-- **Thread Safety:** 
-  - Using `AtomicInteger` for `currentFloor` to ensure atomic updates when the elevator is moving and when the observer reads it.
-  - The `addRequest()` method inside `Elevator` is `synchronized` to handle race conditions when internal and external requests arrive simultaneously.
-- **Data Structures:** 
-  - Using two `TreeSet<Integer>` structures inside the `Elevator` class—one for `upRequests` (sorted naturally) and one for `downRequests` (sorted in reverse). `TreeSet` automatically deduplicates floor requests and keeps them strictly ordered, acting essentially like the **SCAN (Elevator) algorithm**.
+In an SDE-2 interview, explaining *why* you chose a pattern is as important as the code itself.
+
+*   **State Design Pattern:** An elevator has distinct states (`Idle`, `MovingUp`, `MovingDown`). Moving the state-specific logic into separate classes (`IdleState`, `MovingUpState`) avoids massive `if-else` blocks in the `Elevator` class and makes state transitions explicit.
+*   **Strategy Design Pattern:** The logic for selecting the best elevator can change (e.g., Nearest Elevator, Least Loaded Elevator, Odd/Even Floors). I created an `ElevatorSelectionStrategy` interface so the selection algorithm can be swapped at runtime without modifying the core system.
+*   **Observer Design Pattern:** The display panels on each floor and inside the cabin need to know the elevator's current floor and direction. I used the Observer pattern so the `Elevator` can notify the `ElevatorDisplay` asynchronously whenever its state or floor changes.
+*   **Singleton Design Pattern:** The `ElevatorSystem` acts as the central controller. We only want one instance of this system managing the building's elevators.
+*   **Single Responsibility Principle (SOLID):** The `ElevatorSystem` only routes requests. The `Elevator` only manages its movement. The `ElevatorSelectionStrategy` only runs the assignment algorithm.
 
 ---
 
-## 5. System Flow Charts
+## 4. Visualizing the Architecture
 
-### High-Level Architecture Flow
+### Class Diagram
 
 ```mermaid
-flowchart TD
-    Client((User)) -->|Presses Hall Button| ES[ElevatorSystem Facade]
-    Client -->|Presses Cabin Button| ES
+classDiagram
+    class ElevatorSystem {
+        -Map elevators
+        -ElevatorSelectionStrategy strategy
+        +requestElevator(floor, direction)
+        +selectFloor(elevatorId, floor)
+    }
+
+    class Elevator {
+        -int currentFloor
+        -ElevatorState state
+        -TreeSet upRequests
+        -TreeSet downRequests
+        +move()
+        +addRequest(Request)
+    }
+
+    class ElevatorState {
+        <<interface>>
+        +move(Elevator)
+        +addRequest(Elevator, Request)
+    }
+
+    class ElevatorSelectionStrategy {
+        <<interface>>
+        +selectElevator(elevators, request)
+    }
+
+    class Request {
+        -int targetFloor
+        -Direction direction
+        -RequestSource source
+    }
     
-    ES --> |selectElevator()| Strat((ElevatorSelectionStrategy))
-    Strat -.-> |Returns best| ES
-    
-    ES --> |Adds Request| E1[Elevator 1 Thread]
-    ES --> |Adds Request| E2[Elevator 2 Thread]
-    
-    E1 --> |notify()| Obs[ElevatorDisplay Observer]
-    E2 --> |notify()| Obs
+    ElevatorSystem *-- Elevator : manages
+    ElevatorSystem *-- ElevatorSelectionStrategy : uses
+    Elevator o-- ElevatorState : has-a
+    Elevator ..> Request : processes
+    ElevatorState <|-- IdleState
+    ElevatorState <|-- MovingUpState
+    ElevatorState <|-- MovingDownState
 ```
 
-### Elevator State Machine
+---
+
+## 5. System Workflows (Flow Charts)
+
+### Workflow 1: Handling an External Request (Hall Call)
+
+When a user presses the 'UP' button on Floor 3:
+
+```mermaid
+graph TD
+    A[User presses UP at Floor 3] --> B(ElevatorSystem receives External Request)
+    B --> C{ElevatorSelectionStrategy}
+    C -->|Finds Nearest Suitable| D[Selects Elevator 2]
+    D --> E[Add Request to Elevator 2]
+    E --> F{Elevator 2 State}
+    F -->|If Idle| G[Change state to MovingUpState]
+    F -->|If already MovingUp| H[Add to upRequests sorted queue]
+```
+
+### Workflow 2: Elevator Movement Loop
+
+Each elevator runs on its own thread, constantly evaluating its state.
 
 ```mermaid
 stateDiagram-v2
     [*] --> IdleState
-    IdleState --> MovingUpState : Up Request Received
-    IdleState --> MovingDownState : Down Request Received
     
-    MovingUpState --> IdleState : No more UP requests
-    MovingUpState --> MovingDownState : UP requests done, DOWN requests exist
+    IdleState --> MovingUpState : upRequests > 0
+    IdleState --> MovingDownState : downRequests > 0
     
-    MovingDownState --> IdleState : No more DOWN requests
-    MovingDownState --> MovingUpState : DOWN requests done, UP requests exist
-```
-
-### Request Lifecycle (Sequence Diagram)
-
-```mermaid
-sequenceDiagram
-    actor User
-    participant System as ElevatorSystem
-    participant Strategy as NearestElevatorStrategy
-    participant Elevator
+    MovingUpState --> MovingUpState : Move 1 floor up
+    MovingUpState --> IdleState : upRequests == 0
     
-    User->>System: requestElevator(Floor 5, UP)
-    System->>Strategy: selectElevator(elevators, request)
-    Strategy-->>System: Returns Elevator 1
-    System->>Elevator: addRequest(request)
-    
-    note over Elevator: Elevator processes<br/>using State Pattern (TreeSet)
-    Elevator->>Elevator: move()
-    Elevator-->>User: Arrives at Floor 5
+    MovingDownState --> MovingDownState : Move 1 floor down
+    MovingDownState --> IdleState : downRequests == 0
 ```
 
 ---
 
-## 6. Interview Execution Summary
+## 6. Implementation Deep Dive (How it works under the hood)
 
-If you are asked this in a Microsoft interview, drive the conversation with these key talking points:
-1. **"I will decouple the dispatching algorithm from the system using the Strategy Pattern."** (Shows you think about extensibility).
-2. **"I will manage the elevator's directional logic using the State Pattern to prevent complex nested conditionals."** (Shows you write clean code).
-3. **"Since elevators move in real-time, I'll run each Elevator on a separate thread via an ExecutorService and use TreeSets to naturally sort the floors, effectively implementing the LOOK/SCAN algorithm."** (Shows strong concurrent and algorithmic reasoning).
+**1. Managing Requests Effectively (The `TreeSet` Approach)**
+Inside the `Elevator` class, I used two `TreeSet<Integer>` collections: `upRequests` and `downRequests`.
+*   `TreeSet` inherently sorts the elements. 
+*   If the elevator is moving UP, it only looks at `upRequests`. The `TreeSet` ensures that if I press Floor 5, 8, and 3, it visits them in the ordered sequence: 3 -> 5 -> 8.
+*   For `downRequests`, I initialized it with a custom comparator `(a, b) -> b - a` so it sorts in descending order. If I am at Floor 10 and press 8, 2, and 5, it visits them: 8 -> 5 -> 2.
+
+**2. Thread Safety and Concurrency**
+*   Because `ElevatorSystem` receives requests from multiple users concurrently, the `addRequest` method inside `Elevator` is `synchronized` to prevent race conditions when adding to the `TreeSet`.
+*   The `currentFloor` is an `AtomicInteger` to ensure thread-safe reads and updates when the display observers query it.
+*   Elevators are instantiated and submitted to an `ExecutorService` thread pool, allowing them to run their `run()` loops concurrently without blocking the main system thread.
+
+**3. State Management (`MovingUpState.java`)**
+When in `MovingUpState`:
+*   The elevator checks its `upRequests`.
+*   It increments its current floor.
+*   If the current floor equals the next target floor, it stops, removes that request from the queue, and opens doors.
+*   If external requests come in while moving up, it only accepts them if the request is also going UP *and* the target floor is greater than the current floor. Otherwise, it queues it for the next pass or ignores it (leaving it for another elevator).
+
+---
+
+## 7. Interview Closing Remarks
+
+If the interviewer asks for future improvements or how to scale this, you can mention:
+1.  **Handling Overload/Capacity:** Implement a maximum capacity or weight limit for elevators, rejecting requests or pausing if exceeded.
+2.  **Advanced Algorithms:** Upgrade the `NearestElevatorStrategy` to a full `SCAN` algorithm (Elevator Algorithm) which minimizes wait times across the building, similar to disk scheduling.
+3.  **Distributed Systems Context:** In a real distributed software system modeling an elevator, we would use a message broker (like Kafka or RabbitMQ) for requests and Redis to store elevator states. If a server managing elevators crashes, the system could recover its state seamlessly.
