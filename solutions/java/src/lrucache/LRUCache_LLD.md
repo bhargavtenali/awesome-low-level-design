@@ -1,155 +1,148 @@
-# LRU Cache - Low Level Design (LLD)
+# LRU Cache - Low Level Design (Interview Guide)
 
-This document serves as a comprehensive interview preparation guide for the **Least Recently Used (LRU) Cache** Low-Level Design (LLD). It is structured to mirror an actual Microsoft SDE-2 interview flow, moving from problem definition to data structure selection, implementation details, and design principles.
-
----
-
-## 1. Problem Statement & Clarifying Requirements
-
-**Interviewer:** "Design a data structure that follows the constraints of a Least Recently Used (LRU) cache."
-
-**Candidate (You):** "Before we jump into the design, let me clarify a few requirements to ensure we are on the same page:
-1.  **Fixed Capacity:** The cache will be initialized with a positive integer capacity. Once this capacity is reached, adding a new item should evict the least recently used item.
-2.  **Core Operations:** We need to support `get(key)` and `put(key, value)` operations.
-3.  **Time Complexity:** Both operations should ideally work in **O(1)** time complexity.
-4.  **Thread Safety:** Should the cache support concurrent access from multiple threads? (Our implementation will support basic thread safety)."
+This document is prepared to help you articulate the Low-Level Design (LLD) of an **LRU (Least Recently Used) Cache** effectively in an SDE-2 interview at companies like Microsoft.
 
 ---
 
-## 2. High-Level Approach & Data Structure Selection
+## 1. Problem Statement
 
-**Candidate:** "To achieve **O(1)** time complexity for both `get` and `put` operations, we need a combination of two data structures:
+An LRU Cache is a data structure that stores a limited number of items. When the cache reaches its capacity and a new item needs to be inserted, it must evict the **Least Recently Used** item to make space. 
 
-1.  **HashMap (Map):** This will map the `key` to the actual node containing the value. This gives us the O(1) lookup time.
-2.  **Doubly Linked List (DLL):** This will maintain the 'recency' of access.
-    *   The **Most Recently Used (MRU)** items will be kept near the **head** (front) of the list.
-    *   The **Least Recently Used (LRU)** items will naturally fall to the **tail** (end) of the list.
-    *   We use a Doubly Linked List because removing an arbitrary node (which we do when an item is accessed and moved to the front) takes O(1) time if we have a pointer to it. A singly linked list would require O(N) to find the previous node.
-
-**Data Node Structure:**
-Each node in our DLL must contain both the `key` and the `value`. Why the key? When the cache is full, we must evict the node at the tail of the DLL. To successfully remove this node's reference from the HashMap, we need to know its key."
+### Requirements to clarify with the interviewer:
+*   **Functional Requirements:**
+    *   `put(key, value)`: Insert a new key-value pair or update an existing one. If the cache is full, evict the least recently used item.
+    *   `get(key)`: Retrieve the value associated with the key. If the key is accessed, it becomes the most recently used item. Return null/exception if the key doesn't exist.
+    *   `remove(key)`: Remove a specific key from the cache.
+*   **Non-Functional Requirements:**
+    *   Operations (`get` and `put`) should ideally work in **O(1)** time complexity.
+    *   The cache should be **Thread-Safe** to handle concurrent requests in a multi-threaded environment.
+    *   The design should be generic to support different data types for keys and values.
 
 ---
 
-## 3. Core Logic & Flow Diagrams
+## 2. Approach & Data Structures Used
 
-### `get(key)` Operation
+To achieve **O(1)** time complexity for both access and eviction, we need a combination of two data structures:
 
-When we get an item by its key:
-1.  If the key is not in the map, return `null`.
-2.  If the key exists, fetch the node from the map.
-3.  Because it was just accessed, move this node to the front of the DLL (making it the most recently used).
-4.  Return the node's value.
+1.  **HashMap (Map):** Gives us **O(1)** lookup time to find if a key exists and returns the pointer to its location.
+2.  **Doubly Linked List (DLL):** Gives us **O(1)** time to add, remove, and move elements. We maintain the "Most Recently Used" items at the front (head) and the "Least Recently Used" items at the back (tail).
+
+*Why not an Array or Singly Linked List?*
+If we used an array, shifting elements to maintain order would take O(N). If we used a Singly Linked List, removing an element from the middle (when it gets accessed and needs to move to the front) would take O(N) because we wouldn't have a pointer to the previous node.
+
+---
+
+## 3. Class Design
+
+Our implementation separates concerns by splitting the logic into three independent classes:
+
+1.  `Node<K, V>`: Represents a single entry in the cache.
+2.  `DoublyLinkedList<K, V>`: Manages the ordering of nodes (MRU to LRU).
+3.  `LRUCache<K, V>`: Manages the HashMap and interacts with the DLL to expose the Cache API.
+
+### Class Diagram
 
 ```mermaid
-graph TD
-    A[Start: get(key)] --> B{Is key in HashMap?}
-    B -- No --> C[Return null]
-    B -- Yes --> D[Fetch Node from HashMap]
-    D --> E[Move Node to Front of DLL]
-    E --> F[Return Node.value]
-```
-
-### `put(key, value)` Operation
-
-When we insert or update an item:
-1.  If the key already exists: Update the node's value and move it to the front of the DLL.
-2.  If the key doesn't exist:
-    *   Check if the cache is at full capacity.
-    *   If full, remove the least recently used node from the tail of the DLL and delete its key from the HashMap.
-    *   Create a new Node, add it to the front of the DLL, and put it in the HashMap.
-
-```mermaid
-graph TD
-    A[Start: put(key, value)] --> B{Is key in HashMap?}
-    B -- Yes --> C[Update Node's value]
-    C --> D[Move Node to Front of DLL]
-    B -- No --> E{Is Cache Full?}
-    E -- Yes --> F[Remove Node at DLL Tail]
-    F --> G[Remove Node.key from HashMap]
-    G --> H
-    E -- No --> H[Create New Node]
-    H --> I[Add Node to Front of DLL]
-    I --> J[Add Key and Node to HashMap]
-```
-
----
-
-## 4. Object-Oriented Design & Principles
-
-**Candidate:** "Let me walk you through how I've structured the code using standard Object-Oriented principles."
-
-### Design Principles Applied:
-
-1.  **Separation of Concerns (Single Responsibility Principle):**
-    *   The `Node` class strictly acts as a data container.
-    *   The `DoublyLinkedList` class solely manages list operations (`addFirst`, `remove`, `moveToFront`, `removeLast`). It doesn't know about cache eviction policies or capacities.
-    *   The `LRUCache` acts as the orchestrator. It manages the `HashMap` and the capacity logic, delegating list manipulations to the `DoublyLinkedList`.
-2.  **Encapsulation:**
-    *   The internal workings (`head`, `tail`, `HashMap`, `DoublyLinkedList`) are kept `private`. The user only interacts with `get()`, `put()`, and `remove()`.
-    *   We use dummy `head` and `tail` nodes in the DLL. This elegant trick eliminates edge cases (like checking for null heads or tails) when adding or removing nodes.
-
----
-
-## 5. Implementation Deep Dive (Code Walkthrough)
-
-*Interview Tip: You don't need to write all the code on a whiteboard unless asked, but you should be able to explain the critical components confidently.*
-
-**The Generic Node:**
-Supports generics `<K, V>` for flexibility.
-```java
-class Node<K, V> {
-    K key;
-    V value;
-    Node<K, V> prev, next;
-    // Constructor...
-}
-```
-
-**The Doubly Linked List:**
-Handles structural changes seamlessly. Note the dummy head/tail usage.
-```java
-class DoublyLinkedList<K, V> {
-    private final Node<K, V> head;
-    private final Node<K, V> tail;
-    
-    // ... initialize dummy head and tail linking to each other ...
-
-    public void moveToFront(Node<K, V> node) {
-        remove(node);     // Detach from current position
-        addFirst(node);   // Attach right after dummy head
+classDiagram
+    class Node~K, V~ {
+        +K key
+        +V value
+        +Node prev
+        +Node next
     }
-    // ... addFirst, remove, removeLast ...
-}
-```
+    
+    class DoublyLinkedList~K, V~ {
+        -Node head
+        -Node tail
+        +addFirst(Node node)
+        +remove(Node node)
+        +moveToFront(Node node)
+        +removeLast() Node
+    }
+    
+    class LRUCache~K, V~ {
+        -int capacity
+        -Map map
+        -DoublyLinkedList dll
+        +get(K key) V
+        +put(K key, V value)
+        +remove(K key)
+    }
 
-**The LRU Cache Orchestrator:**
-Utilizes `synchronized` methods to ensure basic thread safety. In a high-throughput production environment, we might discuss using `ConcurrentHashMap` and more granular locking mechanisms (like `ReentrantReadWriteLock`), but method-level synchronization is a solid, correct starting point.
-
-```java
-public class LRUCache<K, V> {
-    private final int capacity;
-    private final Map<K, Node<K, V>> map;
-    private final DoublyLinkedList<K, V> dll;
-
-    // ... Constructor ...
-
-    public synchronized V get(K key) { ... }
-    public synchronized void put(K key, V value) { ... }
-}
+    LRUCache *-- DoublyLinkedList : uses
+    LRUCache *-- Node : uses Map of Nodes
+    DoublyLinkedList *-- Node : contains
 ```
 
 ---
 
-## 6. Time and Space Complexity
+## 4. Operation Workflows (Flowcharts)
 
-To wrap up the technical discussion:
-*   **Time Complexity:** 
-    *   `get(key)`: **O(1)**. HashMap lookup is O(1) and moving a node in our DLL is O(1).
-    *   `put(key, value)`: **O(1)**. HashMap insertion/deletion is O(1), and DLL boundary operations are O(1).
-*   **Space Complexity:** **O(C)** where `C` is the capacity of the cache. We store at most `C` elements in both the HashMap and the Doubly Linked List.
+### `get(key)` Flow
+
+When a user fetches a key, we must check if it exists. If it does, we must move it to the front of our DLL to mark it as most recently used.
+
+```mermaid
+flowchart TD
+    A["Start get(key)"] --> B{"Does key exist in Map?"}
+    B -- No --> C["Return null / NotFound"]
+    B -- Yes --> D["Fetch Node from Map"]
+    D --> E["Move Node to front of DLL"]
+    E --> F["Return Node.value"]
+```
+
+### `put(key, value)` Flow
+
+When inserting or updating, we have to handle capacity and reordering.
+
+```mermaid
+flowchart TD
+    A["Start put(key, value)"] --> B{"Does key exist in Map?"}
+    
+    B -- Yes --> C["Fetch Node from Map"]
+    C --> D["Update Node's value"]
+    D --> E["Move Node to front of DLL"]
+    E --> Z["End"]
+
+    B -- No --> F{"Is Cache Full?"}
+    F -- Yes --> G["Remove last node from DLL"]
+    G --> H["Remove evicted key from Map"]
+    H --> I["Create new Node"]
+    F -- No --> I
+    
+    I --> J["Add new Node to front of DLL"]
+    J --> K["Add new Node to Map"]
+    K --> Z
+```
 
 ---
 
-## Summary for the Interviewer
-"By isolating the linked list logic from the cache orchestration logic, the code is highly readable and testable. The combination of HashMap and a Doubly Linked List allows us to strictly meet the O(1) time complexity constraints while safely handling capacity eviction."
+## 5. Design Principles & Best Practices Applied
+
+If the interviewer asks *why* you coded it this way, you can highlight these principles:
+
+1.  **Single Responsibility Principle (SRP):** 
+    Instead of cramming the linked list logic inside the `LRUCache` class, we extracted a `DoublyLinkedList` class. The `DoublyLinkedList` only worries about pointer manipulation, while `LRUCache` worries about cache eviction policies and HashMap lookups.
+    
+2.  **Separation of Concerns:** 
+    By using Dummy Head and Dummy Tail nodes in the `DoublyLinkedList` constructor (`head = new Node(null, null); head.next = tail;`), we completely eliminate null pointer checks when inserting or deleting nodes. This simplifies the code vastly.
+
+3.  **Generics:** 
+    The classes are defined as `<K, V>`. This makes the cache highly reusable. The user can create an `LRUCache<String, Integer>` or `LRUCache<Integer, UserObject>`.
+
+4.  **Thread Safety (Concurrency):**
+    In the provided implementation, the `get`, `put`, and `remove` methods in the `LRUCache` class are marked as `synchronized`. This ensures that in a multi-threaded environment, two threads won't corrupt the HashMap or the Doubly Linked List pointers at the same time.
+    
+    *SDE-2 Pro-Tip (Bonus):* You can mention to the interviewer that while `synchronized` works, it locks the entire cache, which might cause a bottleneck under high load. A better real-world implementation might involve lock striping (like `ConcurrentHashMap`) and `ReentrantReadWriteLock`, or sharding the cache into smaller segments to increase concurrency.
+
+---
+
+## 6. How to present this in the interview
+
+1.  **Start with the Interface:** Before writing implementation code, write down the interface or the method signatures. Show the interviewer you think about the API first.
+2.  **Discuss Data Structures:** Verbally explain why you need *both* a Map and a DLL. Draw a small visual representation on the whiteboard/pad (e.g., `Map -> DLL Nodes`).
+3.  **Write the Node and DLL first:** Build the foundational blocks first. Write the dummy head/tail logic and show how `addFirst` and `remove` are easily implemented.
+4.  **Implement the Cache:** Finally, stitch them together in the `LRUCache` class. 
+5.  **Address Concurrency:** Bring up thread safety *proactively* before the interviewer asks about it. Mention the `synchronized` keyword and its trade-offs. 
+
+By following this narrative, you demonstrate strong modular design, an understanding of algorithmic complexity, and awareness of real-world multi-threading concerns—exactly what is expected of an SDE-2.
