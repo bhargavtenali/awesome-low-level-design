@@ -17,7 +17,7 @@ public class SnakeAndLadderDemo {
                 new Ladder(42, 93), new Ladder(72, 84)
         );
 
-        List<String> players = Arrays.asList("Alice", "Bob", "Charlie");
+        List<String> players = List.of("Alice", "Bob", "Charlie");
 
         Game game = new Game.Builder()
                 .setBoard(100, boardEntities)
