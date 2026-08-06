@@ -14,7 +14,7 @@ import java.util.List;
 
 public class SplitwiseDemo {
     public static void main(String[] args) {
-        // 1. Setup the service
+        // 1. Set up the service
         SplitwiseService service = SplitwiseService.getInstance();
 
         // 2. Create users and groups
@@ -33,8 +33,9 @@ public class SplitwiseDemo {
                 .setDescription("Dinner")
                 .setAmount(1000)
                 .setPaidBy(alice)
-                .setParticipants(Arrays.asList(alice, bob, charlie, david))
+                .setParticipants(List.of(alice, bob, charlie, david))
                 .setSplitStrategy(new EqualSplitStrategy())
+                .build()
         );
 
         service.showBalanceSheet(alice.getId());
@@ -47,9 +48,10 @@ public class SplitwiseDemo {
                 .setDescription("Movie Tickets")
                 .setAmount(370)
                 .setPaidBy(alice)
-                .setParticipants(Arrays.asList(bob, charlie))
+                .setParticipants(List.of(bob, charlie))
                 .setSplitStrategy(new ExactSplitStrategy())
-                .setSplitValues(Arrays.asList(120.0, 250.0))
+                .setSplitValues(List.of(120.0, 250.0))
+                .build()
         );
 
         service.showBalanceSheet(alice.getId());
@@ -62,9 +64,10 @@ public class SplitwiseDemo {
                 .setDescription("Groceries")
                 .setAmount(500)
                 .setPaidBy(david)
-                .setParticipants(Arrays.asList(alice, bob, charlie))
+                .setParticipants(List.of(alice, bob, charlie))
                 .setSplitStrategy(new PercentageSplitStrategy())
-                .setSplitValues(Arrays.asList(40.0, 30.0, 30.0)) // 40%, 30%, 30%
+                .setSplitValues(List.of(40.0, 30.0, 30.0)) // 40%, 30%, 30%
+                .build()
         );
 
         System.out.println("--- Balances After All Expenses ---");

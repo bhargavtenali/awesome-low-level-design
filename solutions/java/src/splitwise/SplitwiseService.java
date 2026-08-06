@@ -36,8 +36,7 @@ public class SplitwiseService {
     public Group getGroup(String id) { return groups.get(id); }
 
     // --- Core Functional Methods (Facade) ---
-    public synchronized void createExpense(Expense.ExpenseBuilder builder) {
-        Expense expense = builder.build();
+    public synchronized void createExpense(Expense expense) {
         User paidBy = expense.getPaidBy();
 
         for (Split split : expense.getSplits()) {
@@ -45,8 +44,8 @@ public class SplitwiseService {
             double amount = split.getAmount();
 
             if (!paidBy.equals(participant)) {
-                paidBy.getBalanceSheet().adjustBalance(participant, amount);
-                participant.getBalanceSheet().adjustBalance(paidBy, -amount);
+                paidBy.getBalanceSheet().adjustBalance(participant, amount); // for paidBy user add +balance against all others
+                participant.getBalanceSheet().adjustBalance(paidBy, -amount); // for all users other than paidBy, we add negative value in balance sheet
             }
         }
         System.out.println("Expense '" + expense.getDescription() + "' of amount " + expense.getAmount() + " created.");
