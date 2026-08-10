@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.Map;
 
 public class LibraryManagementSystem {
-    private static final LibraryManagementSystem INSTANCE = new LibraryManagementSystem();
+    private static final LibraryManagementSystem INSTANCE = new LibraryManagementSystem(); // singleton with eager initialization
     private final Map<String, LibraryItem> catalog = new HashMap<>();
     private final Map<String, Member> members = new HashMap<>();
     private final Map<String, BookCopy> copies = new HashMap<>();
@@ -29,7 +29,7 @@ public class LibraryManagementSystem {
         for (int i = 0; i < numCopies; i++) {
             String copyId = id + "-c" + (i + 1);
             BookCopy copy = new BookCopy(copyId, item);
-            copies.put(copyId, new BookCopy(copyId, item));
+            copies.put(copyId, copy);
             bookCopies.add(copy);
         }
         System.out.println("Added " + numCopies + " copies of '" + title + "'");
