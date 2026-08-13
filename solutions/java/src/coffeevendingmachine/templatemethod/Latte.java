@@ -7,7 +7,7 @@ import java.util.Map;
 
 public class Latte extends Coffee {
     public Latte() {
-        this.coffeeType = "Latte";
+        super("Latte");
     }
 
     // Latte's implementation of the template hook

@@ -7,6 +7,10 @@ import java.util.Map;
 public abstract class Coffee {
     protected String coffeeType = "Unknown Coffee";
 
+    protected Coffee(String coffeeType) {
+        this.coffeeType = coffeeType;
+    }
+
     public String getCoffeeType() {
         return coffeeType;
     }

@@ -20,17 +20,17 @@ public class PaidState implements VendingMachineState {
         Inventory inventory = Inventory.getInstance();
         Coffee coffeeToDispense = machine.getSelectedCoffee();
 
-        if (!inventory.hasIngredients(machine.getSelectedCoffee().getRecipe())) {
-            System.out.println("Sorry, out of ingredients for " + machine.getSelectedCoffee().getCoffeeType());
+        if (!inventory.hasIngredients(coffeeToDispense.getRecipe())) {
+            System.out.println("Sorry, out of ingredients for " + coffeeToDispense.getCoffeeType());
             machine.setState(new OutOfIngredientState());
             machine.getState().cancel(machine);
             return;
         }
-        inventory.deductIngredients(machine.getSelectedCoffee().getRecipe());
+        inventory.deductIngredients(coffeeToDispense.getRecipe());
 
         coffeeToDispense.prepare();
 
-        int change = machine.getMoneyInserted() - machine.getSelectedCoffee().getPrice();
+        int change = machine.getMoneyInserted() - coffeeToDispense.getPrice();
         if (change > 0)
             System.out.println("Returning change: " + change);
 

@@ -14,7 +14,7 @@ import atm.state.IdleState;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class ATMSystem {
-    private static ATMSystem INSTANCE;
+    private static final ATMSystem INSTANCE = new ATMSystem();
     private final BankService bankService;
     private final CashDispenser cashDispenser;
     private static final AtomicLong transactionCounter = new AtomicLong(0);
@@ -25,7 +25,7 @@ public class ATMSystem {
         this.currentState = new IdleState();
         this.bankService = new BankService();
 
-        // Setup the dispenser chain
+        // Set up the dispenser chain
         DispenseChain c1 = new NoteDispenser100(10); // 10 x $100 notes
         DispenseChain c2 = new NoteDispenser50(20); // 20 x $50 notes
         DispenseChain c3 = new NoteDispenser20(30); // 30 x $20 notes
@@ -35,9 +35,6 @@ public class ATMSystem {
     }
 
     public static ATMSystem getInstance() {
-        if (INSTANCE == null) {
-            INSTANCE = new ATMSystem();
-        }
         return INSTANCE;
     }
 
@@ -67,7 +64,7 @@ public class ATMSystem {
         System.out.printf("Your current account balance is: $%.2f%n", balance);
     }
 
-    public void withdrawCash(int amount) {
+    public synchronized void withdrawCash(int amount) {
         if (!cashDispenser.canDispenseCash(amount)) {
             throw new IllegalStateException("Insufficient cash available in the ATM.");
         }

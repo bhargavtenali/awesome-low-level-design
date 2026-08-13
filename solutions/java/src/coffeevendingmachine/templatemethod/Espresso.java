@@ -7,7 +7,7 @@ import java.util.Map;
 
 public class Espresso extends Coffee {
     public Espresso() {
-        this.coffeeType = "Espresso";
+        super("Espresso");
     }
 
     @Override

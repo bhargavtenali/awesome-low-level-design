@@ -12,7 +12,7 @@ public class HasCardState implements ATMState {
     @Override
     public void enterPin(ATMSystem atmSystem, String pin) {
         System.out.println("Authenticating PIN...");
-        boolean isAuthenticated = atmSystem.authenticate(pin);;
+        boolean isAuthenticated = atmSystem.authenticate(pin);
 
         if (isAuthenticated) {
             System.out.println("Authentication successful.");
