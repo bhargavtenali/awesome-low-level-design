@@ -16,7 +16,7 @@ import ridesharingservice.strategy.matching.DriverMatchingStrategy;
 import ridesharingservice.strategy.pricing.PricingStrategy;
 
 public class RideSharingService {
-    private static volatile RideSharingService instance;
+    private static final RideSharingService instance = new RideSharingService();
     private final Map<String, Rider> riders = new ConcurrentHashMap<>();
     private final Map<String, Driver> drivers = new ConcurrentHashMap<>();
     private final Map<String, Trip> trips = new ConcurrentHashMap<>();
@@ -26,9 +26,6 @@ public class RideSharingService {
     private RideSharingService() {}
 
     public static synchronized RideSharingService getInstance() {
-        if (instance == null) {
-            instance = new RideSharingService();
-        }
         return instance;
     }
 
