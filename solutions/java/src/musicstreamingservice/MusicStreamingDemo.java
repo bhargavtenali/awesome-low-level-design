@@ -1,9 +1,5 @@
 package musicstreamingservice;
 
-
-import musicstreamingservice.command.NextTrackCommand;
-import musicstreamingservice.command.PauseCommand;
-import musicstreamingservice.command.PlayCommand;
 import musicstreamingservice.enums.SubscriptionTier;
 import musicstreamingservice.entities.*;
 
@@ -44,24 +40,20 @@ public class MusicStreamingDemo {
         Player player = system.getPlayer();
         player.load(discovery, freeUser);
 
-        // --- Command Pattern: Controlling the player ---
-        PlayCommand play = new PlayCommand(player);
-        PauseCommand pause = new PauseCommand(player);
-        NextTrackCommand next = new NextTrackCommand(player);
-
-        play.execute(); // Plays song 1
-        next.execute(); // Plays song 2
-        pause.execute(); // Pauses song 2
-        play.execute(); // Resumes song 2
-        next.execute(); // Plays song 3
-        next.execute(); // Plays song 4 (ad for free user)
+        // --- State Pattern: Controlling the player ---
+        player.clickPlay(); // Plays song 1
+        player.clickNext(); // Plays song 2
+        player.clickPause(); // Pauses song 2
+        player.clickPlay(); // Resumes song 2
+        player.clickNext(); // Plays song 3
+        player.clickNext(); // Plays song 4 (ad for free user)
         System.out.println();
 
         // --- Premium user experience (no ads) ---
         System.out.println("--- Premium User Experience ---");
         player.load(discovery, premiumUser);
-        play.execute();
-        next.execute();
+        player.clickPlay();
+        player.clickNext();
         System.out.println();
 
         // --- Composite Pattern: Play a playlist ---
@@ -71,16 +63,13 @@ public class MusicStreamingDemo {
         myPlaylist.addTrack(s1); // One More Time
 
         player.load(myPlaylist, premiumUser);
-        play.execute();
-        next.execute();
+        player.clickPlay();
+        player.clickNext();
         System.out.println();
 
-        // --- Search and Recommendation ---
-        System.out.println("--- Search and Recommendation Service Demo ---");
+        // --- Search ---
+        System.out.println("--- Search Demo ---");
         List<Song> searchResults = system.searchSongsByTitle("love");
         System.out.println("Search results for 'love': " + searchResults);
-
-        List<Song> recommendations = system.getSongRecommendations();
-        System.out.println("Your daily recommendations: " + recommendations);
     }
 }

@@ -26,6 +26,7 @@ public class Player {
         this.currentIndex = 0;
         System.out.printf("Loaded %d tracks for user %s.%n", queue.size(), user.getName());
         this.state = new StoppedState();
+        this.status = PlayerStatus.STOPPED;
     }
 
     public void playCurrentSongInQueue() {
@@ -40,13 +41,15 @@ public class Player {
     public void clickPause() { state.pause(this); }
 
     public void clickNext() {
-        if (currentIndex < queue.size() - 1) {
-            currentIndex++;
-            playCurrentSongInQueue();
-        } else {
-            System.out.println("End of queue.");
-            state.stop(this);
-        }
+        state.next(this);
+    }
+
+    public boolean hasNextTrack() {
+        return currentIndex < queue.size() - 1;
+    }
+
+    public void moveToNextTrack() {
+        currentIndex++;
     }
 
     // Getters and Setters used by States

@@ -3,6 +3,7 @@ package musicstreamingservice.entities;
 import musicstreamingservice.enums.SubscriptionTier;
 import musicstreamingservice.observer.ArtistObserver;
 import musicstreamingservice.strategies.playback.PlaybackStrategy;
+import musicstreamingservice.strategies.playback.PlaybackStrategyFactory;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -47,7 +48,7 @@ public class User implements ArtistObserver {
             this.name = name;
         }
         public Builder withSubscription(SubscriptionTier tier, int songsPlayed) {
-            this.playbackStrategy = PlaybackStrategy.getStrategy(tier, songsPlayed);
+            this.playbackStrategy = PlaybackStrategyFactory.getStrategy(tier, songsPlayed);
             return this;
         }
         public User build() {

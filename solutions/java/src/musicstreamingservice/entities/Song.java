@@ -1,6 +1,5 @@
 package musicstreamingservice.entities;
 
-import java.util.Collections;
 import java.util.List;
 
 public class Song implements Playable {
@@ -18,7 +17,7 @@ public class Song implements Playable {
 
     @Override
     public List<Song> getTracks() {
-        return Collections.singletonList(this);
+        return List.of(this);
     }
 
     @Override

@@ -20,4 +20,16 @@ public class PausedState implements PlayerState {
         player.changeState(new StoppedState());
         player.setStatus(PlayerStatus.STOPPED);
     }
+    @Override
+    public void next(Player player) {
+        if (player.hasNextTrack()) {
+            player.moveToNextTrack();
+            player.changeState(new PlayingState());
+            player.setStatus(PlayerStatus.PLAYING);
+            player.playCurrentSongInQueue();
+        } else {
+            System.out.println("End of queue.");
+            stop(player);
+        }
+    }
 }

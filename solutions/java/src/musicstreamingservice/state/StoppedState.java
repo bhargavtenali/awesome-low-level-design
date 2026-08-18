@@ -21,4 +21,9 @@ public class StoppedState implements PlayerState {
 
     @Override
     public void stop(Player player) { System.out.println("Already stopped."); }
+
+    @Override
+    public void next(Player player) {
+        System.out.println("Cannot skip. Player is stopped.");
+    }
 }
