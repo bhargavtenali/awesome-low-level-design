@@ -20,7 +20,7 @@ public class Player {
         this.status = PlayerStatus.STOPPED;
     }
 
-    public void load(Playable playable, User user) {
+    public synchronized void load(Playable playable, User user) {
         this.currentUser = user;
         this.queue = playable.getTracks();
         this.currentIndex = 0;
@@ -37,10 +37,10 @@ public class Player {
     }
 
     // Methods for state transitions
-    public void clickPlay() { state.play(this); }
-    public void clickPause() { state.pause(this); }
+    public synchronized void clickPlay() { state.play(this); }
+    public synchronized void clickPause() { state.pause(this); }
 
-    public void clickNext() {
+    public synchronized void clickNext() {
         state.next(this);
     }
 

@@ -10,13 +10,14 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class MusicStreamingSystem {
     private static volatile MusicStreamingSystem instance;
 
-    private final Map<String, User> users = new HashMap<>();
-    private final Map<String, Song> songs = new HashMap<>();
-    private final Map<String, Artist> artists = new HashMap<>();
+    private final Map<String, User> users = new ConcurrentHashMap<>();
+    private final Map<String, Song> songs = new ConcurrentHashMap<>();
+    private final Map<String, Artist> artists = new ConcurrentHashMap<>();
 
     private final Player player;
     private final SearchService searchService;
