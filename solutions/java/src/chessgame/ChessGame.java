@@ -53,21 +53,21 @@ public class ChessGame {
     private Move getPlayerMove(Player player) {
         // For simplicity, let's assume the player enters the move via console input
         Scanner scanner = new Scanner(System.in);
-        System.out.print("Enter source row: ");
-        int sourceRow = scanner.nextInt();
-        System.out.print("Enter source column: ");
-        int sourceCol = scanner.nextInt();
-        System.out.print("Enter destination row: ");
-        int destRow = scanner.nextInt();
-        System.out.print("Enter destination column: ");
-        int destCol = scanner.nextInt();
+        System.out.print("Enter start row: ");
+        int startRow = scanner.nextInt();
+        System.out.print("Enter start column: ");
+        int startCol = scanner.nextInt();
+        System.out.print("Enter end row: ");
+        int endRow = scanner.nextInt();
+        System.out.print("Enter end column: ");
+        int endCol = scanner.nextInt();
 
-        Piece piece = board.getPiece(sourceRow, sourceCol);
+        Piece piece = board.getPiece(startRow, startCol);
         if (piece == null || piece.getColor() != player.getColor()) {
             throw new IllegalArgumentException("Invalid piece selection!");
         }
 
-        return new Move(board.getCell(sourceRow, sourceCol), board.getCell(destRow, destCol));
+        return new Move(board.getCell(startRow, startCol), board.getCell(endRow, endCol));
     }
 
     private void displayResult() {
