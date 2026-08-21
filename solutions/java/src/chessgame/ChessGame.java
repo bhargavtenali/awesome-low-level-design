@@ -28,7 +28,7 @@ public class ChessGame {
             Move move = getPlayerMove(player);
             // Make the move on the board
             try {
-                board.movePiece(move);
+                board.makeMove(move);
             } catch (InvalidMoveException e) {
                 System.out.println(e.getMessage());
                 System.out.println("Try again!");

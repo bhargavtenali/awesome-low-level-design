@@ -338,7 +338,7 @@ This is the **most important section** for interview credibility. This codebase 
    - **Fix:** either make `Board.movePiece()` throw `InvalidMoveException` with a descriptive message instead of returning `false`, or (simpler) check the boolean return value in `ChessGame.start()` and only call `switchTurn()` when it's `true`.
 
 5. **No turn ownership check inside `Board`.** Whose-turn-is-it validation currently only happens in `ChessGame.getPlayerMove()` (console path). If `Board.movePiece(Move)` were called directly (e.g. from a test, or a future API layer), nothing stops White from moving a Black piece.
-   - **Fix:** pass the `currentPlayer`'s color into `movePiece`, or have `ChessGame` inject/verify it before delegating to `Board`.
+   - **Fix:** pass the `currentPlayer`'s color into `makeMove`, or have `ChessGame` inject/verify it before delegating to `Board`.
 
 6. **No castling, en passant, or pawn promotion.** Standard chess features not yet modeled.
 

@@ -47,13 +47,13 @@ public class Board {
         return board[row][col];
     }
 
-    public synchronized boolean movePiece(Move move) {
-        Cell from = move.getStart(), to = move.getEnd();
-        Piece piece = from.getPiece();
-        if (piece == null || !piece.canMove(this, from, to)) return false;
+    public synchronized boolean makeMove(Move move) {
+        Cell start = move.getStart(), end = move.getEnd();
+        Piece piece = start.getPiece();
+        if (piece == null || !piece.canMove(this, start, end)) return false;
 
-        to.setPiece(piece);
-        from.setPiece(null);
+        end.setPiece(piece);
+        start.setPiece(null);
         return true;
     }
 

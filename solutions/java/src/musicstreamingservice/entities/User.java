@@ -5,15 +5,15 @@ import musicstreamingservice.observer.ArtistObserver;
 import musicstreamingservice.strategies.playback.PlaybackStrategy;
 import musicstreamingservice.strategies.playback.PlaybackStrategyFactory;
 
-import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class User implements ArtistObserver {
     private final String id;
     private final String name;
     private final PlaybackStrategy playbackStrategy;
-    private final Set<Artist> followedArtists = new HashSet<>();
+    private final Set<Artist> followedArtists = ConcurrentHashMap.newKeySet();
 
     private User(String id, String name, PlaybackStrategy strategy) {
         this.id = id;
