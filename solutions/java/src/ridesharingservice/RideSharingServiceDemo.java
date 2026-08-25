@@ -12,10 +12,11 @@ import ridesharingservice.strategy.pricing.VehicleBasedPricingStrategy;
 
 public class RideSharingServiceDemo {
     public static void main(String[] args) {
-        // 1. Setup the system using singleton instance
-        RideSharingService service = RideSharingService.getInstance();
-        service.setDriverMatchingStrategy(new NearestDriverMatchingStrategy());
-        service.setPricingStrategy(new VehicleBasedPricingStrategy());
+        // 1. Set up the system using singleton instance
+        RideSharingService service =
+                new RideSharingService(
+                        new VehicleBasedPricingStrategy(),
+                        new NearestDriverMatchingStrategy());
 
         // 2. Register riders and drivers
         Rider alice = service.registerRider("Alice", "123-456-7890");

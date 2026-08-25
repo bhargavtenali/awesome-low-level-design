@@ -1,18 +1,24 @@
 package ridesharingservice.entities;
 
 import ridesharingservice.enums.DriverStatus;
-import ridesharingservice.enums.TripStatus;
 
 public class Driver extends User {
-    private Vehicle vehicle;
+
+    private final Vehicle vehicle;
     private Location currentLocation;
     private DriverStatus status;
 
-    public Driver(String name, String contact, Vehicle vehicle, Location initialLocation) {
+    public Driver(
+            String name,
+            String contact,
+            Vehicle vehicle,
+            Location initialLocation) {
+
         super(name, contact);
+
         this.vehicle = vehicle;
         this.currentLocation = initialLocation;
-        this.status = DriverStatus.OFFLINE; // Default status
+        this.status = DriverStatus.OFFLINE;
     }
 
     public Vehicle getVehicle() {
@@ -23,9 +29,25 @@ public class Driver extends User {
         return status;
     }
 
+    public synchronized boolean tryAssignTrip() {
+
+        if (status != DriverStatus.ONLINE) {
+            return false;
+        }
+
+        status = DriverStatus.IN_TRIP;
+
+        System.out.println(
+                "Driver " + getName() + " is now " + status);
+
+        return true;
+    }
+
     public void setStatus(DriverStatus status) {
         this.status = status;
-        System.out.println("Driver " + getName() + " is now " + status);
+
+        System.out.println(
+                "Driver " + getName() + " is now " + status);
     }
 
     public Location getCurrentLocation() {
@@ -34,14 +56,5 @@ public class Driver extends User {
 
     public void setCurrentLocation(Location currentLocation) {
         this.currentLocation = currentLocation;
-    }
-
-    @Override public void onUpdate(Trip trip) {
-        System.out.printf("--- Notification for Driver %s ---\n", getName());
-        System.out.printf("  Trip %s status: %s.\n", trip.getId(), trip.getStatus());
-        if (trip.getStatus() == TripStatus.REQUESTED) {
-            System.out.println("  A new ride is available for you to accept.");
-        }
-        System.out.println("--------------------------------\n");
     }
 }

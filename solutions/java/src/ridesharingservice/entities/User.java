@@ -4,9 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import ridesharingservice.observer.TripObserver;
+public abstract class User {
 
-public abstract class User implements TripObserver {
     private final String id;
     private final String name;
     private final String contact;

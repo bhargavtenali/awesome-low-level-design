@@ -16,117 +16,188 @@ import ridesharingservice.strategy.matching.DriverMatchingStrategy;
 import ridesharingservice.strategy.pricing.PricingStrategy;
 
 public class RideSharingService {
-    private static final RideSharingService instance = new RideSharingService();
+
     private final Map<String, Rider> riders = new ConcurrentHashMap<>();
     private final Map<String, Driver> drivers = new ConcurrentHashMap<>();
     private final Map<String, Trip> trips = new ConcurrentHashMap<>();
-    private PricingStrategy pricingStrategy;
-    private DriverMatchingStrategy driverMatchingStrategy;
 
-    private RideSharingService() {}
+    private final PricingStrategy pricingStrategy;
+    private final DriverMatchingStrategy driverMatchingStrategy;
 
-    public static synchronized RideSharingService getInstance() {
-        return instance;
-    }
+    public RideSharingService(
+            PricingStrategy pricingStrategy,
+            DriverMatchingStrategy driverMatchingStrategy) {
 
-    // Allow changing strategies at runtime for extensibility
-    public void setPricingStrategy(PricingStrategy pricingStrategy) {
+        if (pricingStrategy == null || driverMatchingStrategy == null) {
+            throw new IllegalArgumentException(
+                    "Strategies cannot be null.");
+        }
+
         this.pricingStrategy = pricingStrategy;
-    }
-
-    public void setDriverMatchingStrategy(DriverMatchingStrategy driverMatchingStrategy) {
         this.driverMatchingStrategy = driverMatchingStrategy;
     }
 
     public Rider registerRider(String name, String contact) {
+
         Rider rider = new Rider(name, contact);
         riders.put(rider.getId(), rider);
+
         return rider;
     }
 
-    public Driver registerDriver(String name, String contact, Vehicle vehicle, Location initialLocation) {
-        Driver driver = new Driver(name, contact, vehicle, initialLocation);
+    public Driver registerDriver(
+            String name,
+            String contact,
+            Vehicle vehicle,
+            Location initialLocation) {
+
+        Driver driver =
+                new Driver(name, contact, vehicle, initialLocation);
+
         drivers.put(driver.getId(), driver);
+
         return driver;
     }
 
-    public Trip requestRide(String riderId, Location pickup, Location dropoff, RideType rideType) {
+    public Trip requestRide(
+            String riderId,
+            Location pickup,
+            Location dropoff,
+            RideType rideType) {
+
         Rider rider = riders.get(riderId);
-        if (rider == null)
+
+        if (rider == null) {
             throw new NoSuchElementException("Rider not found");
+        }
 
-        System.out.println("\n--- New Ride Request from " + rider.getName() + " ---");
+        System.out.println(
+                "\n--- New Ride Request from "
+                        + rider.getName() + " ---");
 
-        // 1. Find available drivers
-        List<Driver> availableDrivers = driverMatchingStrategy.findDrivers(List.copyOf(drivers.values()), pickup, rideType);
+        List<Driver> availableDrivers =
+                driverMatchingStrategy.findDrivers(
+                        List.copyOf(drivers.values()),
+                        pickup,
+                        rideType);
 
         if (availableDrivers.isEmpty()) {
-            System.out.println("No drivers available for your request. Please try again later.");
+            System.out.println(
+                    "No drivers available for your request. "
+                            + "Please try again later.");
+
             return null;
         }
 
-        System.out.println("Found " + availableDrivers.size() + " available driver(s).");
+        System.out.println(
+                "Found " + availableDrivers.size()
+                        + " available driver(s).");
 
-        // 2. Calculate fare
-        double fare = pricingStrategy.calculateFare(pickup, dropoff, rideType);
-        System.out.printf("Estimated fare: $%.2f%n", fare);
+        double fare =
+                pricingStrategy.calculateFare(
+                        pickup,
+                        dropoff,
+                        rideType);
 
-        // 3. Create a trip using the Builder
-        Trip trip = new Trip.TripBuilder()
-                .withRider(rider)
-                .withPickupLocation(pickup)
-                .withDropoffLocation(dropoff)
-                .withFare(fare)
-                .build();
+        System.out.printf(
+                "Estimated fare: $%.2f%n",
+                fare);
+
+        Trip trip =
+                new Trip(
+                        rider,
+                        pickup,
+                        dropoff,
+                        fare);
 
         trips.put(trip.getId(), trip);
 
-        // 4. Notify nearby drivers (in a real system, this would be a push notification)
-        System.out.println("Notifying nearby drivers of the new ride request...");
+        System.out.println(
+                "Notifying nearby drivers of the new ride request...");
+
         for (Driver driver : availableDrivers) {
-            System.out.println(" > Notifying " + driver.getName() + " at " + driver.getCurrentLocation());
-            driver.onUpdate(trip);
+            System.out.println(
+                    " > Notifying "
+                            + driver.getName()
+                            + " at "
+                            + driver.getCurrentLocation());
         }
 
         return trip;
     }
 
-    public void acceptRide(String driverId, String tripId) {
+    public void acceptRide(
+            String driverId,
+            String tripId) {
+
         Driver driver = drivers.get(driverId);
         Trip trip = trips.get(tripId);
-        if (driver == null || trip == null)
-            throw new NoSuchElementException("Driver or Trip not found");
 
-        System.out.println("\n--- Driver " + driver.getName() + " accepted the ride ---");
+        if (driver == null || trip == null) {
+            throw new NoSuchElementException(
+                    "Driver or Trip not found");
+        }
 
-        driver.setStatus(DriverStatus.IN_TRIP);
+        System.out.println(
+                "\n--- Driver "
+                        + driver.getName()
+                        + " accepted the ride ---");
+
+        if (!driver.tryAssignTrip()) {
+            throw new IllegalStateException(
+                    "Driver is not available");
+        }
+
         trip.assignDriver(driver);
     }
 
     public void startTrip(String tripId) {
+
         Trip trip = trips.get(tripId);
-        if (trip == null)
+
+        if (trip == null) {
             throw new NoSuchElementException("Trip not found");
-        System.out.println("\n--- Trip " + trip.getId() + " is starting ---");
+        }
+
+        System.out.println(
+                "\n--- Trip "
+                        + trip.getId()
+                        + " is starting ---");
+
         trip.startTrip();
     }
 
     public void endTrip(String tripId) {
+
         Trip trip = trips.get(tripId);
-        if (trip == null)
+
+        if (trip == null) {
             throw new NoSuchElementException("Trip not found");
-        System.out.println("\n--- Trip " + trip.getId() + " is ending ---");
+        }
+
+        System.out.println(
+                "\n--- Trip "
+                        + trip.getId()
+                        + " is ending ---");
+
         trip.endTrip();
 
-        // Update statuses and history
         Driver driver = trip.getDriver();
-        driver.setStatus(DriverStatus.ONLINE); // Driver is available again
-        driver.setCurrentLocation(trip.getDropoffLocation()); // Update driver location
 
+        driver.setStatus(DriverStatus.ONLINE);
+        driver.setCurrentLocation(
+                trip.getDropoffLocation());
+
+        Driver tripDriver = trip.getDriver();
         Rider rider = trip.getRider();
-        driver.addTripToHistory(trip);
+
+        tripDriver.addTripToHistory(trip);
         rider.addTripToHistory(trip);
 
-        System.out.println("Driver " + driver.getName() + " is now back online at " + driver.getCurrentLocation());
+        System.out.println(
+                "Driver "
+                        + driver.getName()
+                        + " is now back online at "
+                        + driver.getCurrentLocation());
     }
 }
