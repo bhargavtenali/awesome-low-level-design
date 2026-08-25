@@ -52,7 +52,7 @@ public class BankService {
     }
 
     public void linkCardToAccount(Card card, Account account) {
-        account.getCards().put(card.getCardNumber(), card);
+        account.addCard(card);
         cardAccountMap.put(card, account);
     }
 }

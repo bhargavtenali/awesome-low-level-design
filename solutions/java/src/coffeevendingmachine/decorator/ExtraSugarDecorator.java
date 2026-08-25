@@ -5,36 +5,33 @@ import coffeevendingmachine.enums.Ingredient;
 import java.util.HashMap;
 import java.util.Map;
 
-public class ExtraSugarDecorator extends CoffeeDecorator {
-    private static final int COST = 10;
-    private static final Map<Ingredient, Integer> RECIPE_ADDITION = Map.of(Ingredient.SUGAR, 1);
+public class ExtraSugarDecorator extends Coffee {
+
+    private final Coffee coffee;
 
     public ExtraSugarDecorator(Coffee coffee) {
-        super(coffee);
-    }
-
-    @Override
-    public String getCoffeeType() {
-        return decoratedCoffee.getCoffeeType() + ", Extra Sugar";
+        super(coffee.getCoffeeType() + " + Extra Sugar");
+        this.coffee = coffee;
     }
 
     @Override
     public int getPrice() {
-        return decoratedCoffee.getPrice() + COST;
+        return coffee.getPrice() + 10;
     }
 
     @Override
     public Map<Ingredient, Integer> getRecipe() {
-        // Merge the recipes
-        Map<Ingredient, Integer> newRecipe = new HashMap<>(decoratedCoffee.getRecipe());
-        RECIPE_ADDITION.forEach((ingredient, qty) ->
-                newRecipe.merge(ingredient, qty, Integer::sum));
-        return newRecipe;
+        Map<Ingredient, Integer> recipe =
+                new HashMap<>(coffee.getRecipe());
+
+        recipe.merge(Ingredient.SUGAR, 1, Integer::sum);
+
+        return recipe;
     }
 
     @Override
-    public void prepare() {
-        super.prepare();
-        System.out.println("- Stirring in Extra Sugar.");
+    protected void addCondiments() {
+        coffee.addCondiments();
+        System.out.println("- Adding extra sugar.");
     }
 }

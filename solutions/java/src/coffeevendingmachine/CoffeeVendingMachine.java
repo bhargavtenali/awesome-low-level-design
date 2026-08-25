@@ -28,7 +28,7 @@ public class CoffeeVendingMachine {
     }
 
     // --- Actions delegated to the current state ---
-    public void selectCoffee(CoffeeType type, List<ToppingType> toppings) {
+    public void  selectCoffee(CoffeeType type, List<ToppingType> toppings) {
         // 1. Create the base coffee using the factory
         Coffee coffee = CoffeeFactory.createCoffee(type);
 
@@ -62,9 +62,5 @@ public class CoffeeVendingMachine {
     public void reset() {
         this.selectedCoffee = null;
         this.moneyInserted = 0;
-    }
-
-    public Map<String, Integer> showIngredientsMap() {
-        return ingredientStore.getAllIngredients();
     }
 }

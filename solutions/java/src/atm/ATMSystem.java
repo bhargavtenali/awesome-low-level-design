@@ -17,7 +17,6 @@ public class ATMSystem {
     private static final ATMSystem INSTANCE = new ATMSystem();
     private final BankService bankService;
     private final CashDispenser cashDispenser;
-    private static final AtomicLong transactionCounter = new AtomicLong(0);
     private ATMState currentState;
     private Card currentCard;
 

@@ -26,6 +26,10 @@ public class Account {
         return cards;
     }
 
+    public void addCard(Card card){
+        cards.put(card.getCardNumber(), card);
+    }
+
     public synchronized void deposit(double amount) {
         balance += amount;
     }
