@@ -30,16 +30,11 @@ public class Driver extends User {
     }
 
     public synchronized boolean tryAssignTrip() {
-
         if (status != DriverStatus.ONLINE) {
             return false;
         }
-
         status = DriverStatus.IN_TRIP;
-
-        System.out.println(
-                "Driver " + getName() + " is now " + status);
-
+        System.out.println("Driver " + getName() + " is now " + status);
         return true;
     }
 

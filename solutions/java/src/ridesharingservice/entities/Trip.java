@@ -3,7 +3,6 @@ package ridesharingservice.entities;
 import java.util.UUID;
 
 import ridesharingservice.enums.TripStatus;
-import ridesharingservice.observer.Rider;
 import ridesharingservice.state.RequestedState;
 import ridesharingservice.state.TripState;
 
@@ -19,23 +18,15 @@ public class Trip {
     private TripStatus status;
     private TripState currentState;
 
-    public Trip(
-            Rider rider,
-            Location pickupLocation,
-            Location dropoffLocation,
-            double fare) {
-
+    public Trip(Rider rider, Location pickupLocation, Location dropoffLocation, double fare) {
         if (rider == null || pickupLocation == null || dropoffLocation == null) {
-            throw new IllegalArgumentException(
-                    "Rider, pickup and dropoff locations are required.");
+            throw new IllegalArgumentException("Rider, pickup and dropoff locations are required.");
         }
-
         this.id = UUID.randomUUID().toString();
         this.rider = rider;
         this.pickupLocation = pickupLocation;
         this.dropoffLocation = dropoffLocation;
         this.fare = fare;
-
         this.status = TripStatus.REQUESTED;
         this.currentState = new RequestedState();
     }

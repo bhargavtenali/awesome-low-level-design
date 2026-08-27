@@ -6,17 +6,14 @@ import ridesharingservice.entities.Trip;
 import ridesharingservice.entities.Vehicle;
 import ridesharingservice.enums.DriverStatus;
 import ridesharingservice.enums.RideType;
-import ridesharingservice.observer.Rider;
+import ridesharingservice.entities.Rider;
 import ridesharingservice.strategy.matching.NearestDriverMatchingStrategy;
 import ridesharingservice.strategy.pricing.VehicleBasedPricingStrategy;
 
 public class RideSharingServiceDemo {
     public static void main(String[] args) {
         // 1. Set up the system using singleton instance
-        RideSharingService service =
-                new RideSharingService(
-                        new VehicleBasedPricingStrategy(),
-                        new NearestDriverMatchingStrategy());
+        RideSharingService service = new RideSharingService(new VehicleBasedPricingStrategy(), new NearestDriverMatchingStrategy());
 
         // 2. Register riders and drivers
         Rider alice = service.registerRider("Alice", "123-456-7890");
