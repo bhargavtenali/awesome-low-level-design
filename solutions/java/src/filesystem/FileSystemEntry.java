@@ -27,6 +27,7 @@ public abstract class FileSystemEntry {
 
     public String getPath() {
         if (parent == null) {
+            // only for "/"
             return name;
         }
 

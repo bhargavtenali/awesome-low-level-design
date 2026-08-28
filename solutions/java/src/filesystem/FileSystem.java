@@ -10,7 +10,7 @@ public class FileSystem {
     }
 
     public File createFile(String path, String content) {
-        // eg. path = "/home/user/notes.txt", "/notes.txt"
+        // e.g. path = "/home/user/notes.txt", "/notes.txt" ; content = "hello world"
         if (path.equals("/")) {
             throw new IllegalArgumentException("Cannot create file at root");
         }
@@ -45,6 +45,7 @@ public class FileSystem {
     }
 
     public void delete(String path) {
+        // eg "/home/notes.txt", "/nonexistent"
         if (path.equals("/")) {
             throw new IllegalArgumentException("Cannot delete root");
         }
@@ -100,6 +101,7 @@ public class FileSystem {
     }
 
     public void move(String srcPath, String destPath) {
+        // eg. move("/home/user/notes.txt", "/home/notes.txt") ; move("/home", "/home/user/stuff") ; move("/home/abc", "/new_home)
         if (srcPath.equals("/")) {
             throw new IllegalArgumentException("Cannot move root");
         }
@@ -128,14 +130,14 @@ public class FileSystem {
         if (destParent.hasChild(destName)) {
             throw new IllegalStateException("Destination already exists: " + destPath);
         }
-
+        // move("/home/abc", "/new_home)
         srcParent.removeChild(srcName);
         entry.setName(destName);
         destParent.addChild(entry);
     }
 
     private FileSystemEntry resolvePath(String path) {
-        // eg. path = "/home/user"
+        // eg. path = "/home/user", "/"
         if (path == null || path.isEmpty()) {
             throw new IllegalArgumentException("Path cannot be empty");
         }
@@ -172,7 +174,7 @@ public class FileSystem {
     }
 
     private Folder resolveParent(String path) {
-        // eg. path = "/home/user/notes.txt"
+        // eg. path = "/home/user/notes.txt", "/home"
         if (path.equals("/")) {
             throw new IllegalArgumentException("Root has no parent");
         }

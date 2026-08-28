@@ -67,6 +67,57 @@ public class InventoryManager {
         return true;
     }
 
+    /*
+    FIXME Follow-up: 2
+
+    Both Warehouse and Transfer implement InventoryHolder
+    interface InventoryHolder:
+        + addStock(productId, quantity) -> void
+        + removeStock(productId, quantity) -> boolean
+        + getStock(productId) -> int
+        + checkAvailability(productId, quantity) -> boolean
+
+    class Transfer implements InventoryHolder:
+        - id: string
+        - productId: string
+        - quantity: int
+        - fromWarehouseId: string
+        - toWarehouseId: string
+        - createdAt: timestamp
+
+        + Transfer(id, productId, quantity, fromWarehouseId, toWarehouseId)
+        + getStock(productId) -> int
+        + getFromWarehouse() -> string
+        + getToWarehouse() -> string
+
+    initiateTransfer(productId, fromWarehouseId, toWarehouseId, quantity)
+        fromWarehouse = warehouses[fromWarehouseId]
+        toWarehouse = warehouses[toWarehouseId]
+
+        if !fromWarehouse.removeStock(productId, quantity)
+            return null  // Insufficient stock
+
+        // Create transfer to hold the inventory during shipment
+        transfer = Transfer(generateId(), productId, quantity, fromWarehouseId, toWarehouseId)
+        transfers[transfer.id] = transfer
+
+        return transfer.id
+
+    completeTransfer(transferId)
+        transfer = transfers[transferId]
+        if transfer == null
+            return false
+
+        toWarehouse = warehouses[transfer.toWarehouseId]
+
+        // Move inventory from transfer to destination
+        toWarehouse.addStock(transfer.productId, transfer.quantity)
+
+        // Remove the transfer object
+        transfers.remove(transferId)
+        return true
+     */
+
     public List<String> getWarehousesWithAvailability(String productId, int quantity) {
         List<String> available = new ArrayList<>();
         for (Map.Entry<String, Warehouse> entry : warehouses.entrySet()) {

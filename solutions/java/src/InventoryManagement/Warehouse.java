@@ -41,13 +41,13 @@ public class Warehouse {
     }
 
     public boolean removeStock(String productId, int quantity) {
+        if (quantity <= 0) {
+            return false;
+        }
+
         List<AlertToFire> alertsToFire = null;
 
         synchronized (this) {
-            if (quantity <= 0) {
-                return false;
-            }
-
             int currentQty = inventory.getOrDefault(productId, 0);
             if (currentQty - quantity < 0) {
                 return false;
@@ -75,8 +75,71 @@ public class Warehouse {
             return false;
         }
         int currentQty = inventory.getOrDefault(productId, 0);
+        // int reservedQty = reserved.getOrDefault(productId, 0);
+        // return (currentQty-reservedQty) >= quantity
         return currentQty >= quantity;
     }
+
+    /*
+    FIXME Follow-up: 1
+
+    reserveStock(productId, quantity, reservationId, timeoutMs)
+        synchronized(this)
+            totalQty = inventory[productId] ?: 0
+            reservedQty = reserved[productId] ?: 0
+            availableQty = totalQty - reservedQty
+
+            if availableQty - quantity < 0
+                return false
+
+            // Create reservation record
+            reservation = Reservation(productId, quantity, currentTime() + timeoutMs)
+            reservations[reservationId] = reservation
+
+            // Update reserved count
+            reserved[productId] = reserved[productId] + quantity
+            return true
+
+    confirmReservation(reservationId)
+        synchronized(this)
+            reservation = reservations[reservationId]
+            if reservation == null
+                return false
+
+            if currentTime() > reservation.expiresAt
+                releaseReservation(reservationId)
+                return false  // Reservation expired
+
+            // Actually deduct inventory
+            inventory[reservation.productId] -= reservation.quantity
+
+            // Free up the reserved count
+            reserved[reservation.productId] -= reservation.quantity
+
+            // Remove reservation record
+            reservations.remove(reservationId)
+            return true
+
+    releaseReservation(reservationId)
+        synchronized(this)
+            reservation = reservations[reservationId]
+            if reservation == null
+                return
+
+            reserved[reservation.productId] -= reservation.quantity
+            reservations.remove(reservationId)
+
+    cleanupExpiredReservations()
+        while true
+            sleep(60000)  // Run every minute
+            now = currentTime()
+
+            synchronized(this)
+                for reservationId in reservations.keys()
+                    reservation = reservations[reservationId]
+                    if now > reservation.expiresAt
+                        releaseReservation(reservationId)
+     */
 
     public synchronized void setLowStockAlert(String productId, int threshold, AlertListener listener) {
         if (threshold <= 0) {
