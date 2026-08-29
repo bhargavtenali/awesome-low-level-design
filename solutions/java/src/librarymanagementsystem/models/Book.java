@@ -33,16 +33,7 @@ public class Book {
         return List.copyOf(copies);
     }
 
-    public BookCopy getAvailableCopy() {
-
-        return copies.stream()
-                .filter(BookCopy::isAvailable)
-                .findFirst()
-                .orElse(null);
-    }
-
     public long getAvailableCopyCount() {
-
         return copies.stream()
                 .filter(BookCopy::isAvailable)
                 .count();

@@ -1,6 +1,5 @@
 package librarymanagementsystem;
 
-import librarymanagementsystem.models.Book;
 import librarymanagementsystem.models.BookCopy;
 import librarymanagementsystem.models.Member;
 
@@ -48,39 +47,28 @@ public class LibraryManagementDemo {
 
         library.printCatalog();
 
-        // ---------------- Search ----------------
-
-        System.out.println(
-                "=== Search by Title ===");
+        System.out.println("=== Search by Title ===");
 
         library.searchByTitle("Dune")
                 .forEach(book ->
                         System.out.println(
-                                "Found: "
-                                        + book.getTitle()));
+                                "Found: " + book.getTitle()));
 
-        System.out.println(
-                "\n=== Search by Author ===");
+        System.out.println("\n=== Search by Author ===");
 
         library.searchByAuthor("Tolkien")
                 .forEach(book ->
                         System.out.println(
-                                "Found: "
-                                        + book.getTitle()));
+                                "Found: " + book.getTitle()));
 
-        System.out.println(
-                "\n=== Search by ISBN ===");
+        System.out.println("\n=== Search by ISBN ===");
 
         library.searchByIsbn("978-0441172719")
                 .forEach(book ->
                         System.out.println(
-                                "Found: "
-                                        + book.getTitle()));
+                                "Found: " + book.getTitle()));
 
-        // ---------------- Checkout ----------------
-
-        System.out.println(
-                "\n=== Checkout ===");
+        System.out.println("\n=== Checkout ===");
 
         library.checkout(
                 alice.getId(),
@@ -92,8 +80,6 @@ public class LibraryManagementDemo {
 
         library.printCatalog();
 
-        // ---------------- Invalid checkout ----------------
-
         System.out.println(
                 "Trying to checkout an already checked-out copy:");
 
@@ -103,14 +89,10 @@ public class LibraryManagementDemo {
                     hobbitCopies.get(0).getId());
         } catch (IllegalStateException e) {
             System.out.println(
-                    "Checkout failed: "
-                            + e.getMessage());
+                    "Checkout failed: " + e.getMessage());
         }
 
-        // ---------------- Return ----------------
-
-        System.out.println(
-                "\n=== Return ===");
+        System.out.println("\n=== Return ===");
 
         library.returnBook(
                 alice.getId(),
@@ -118,18 +100,12 @@ public class LibraryManagementDemo {
 
         library.printCatalog();
 
-        // ---------------- Member loans ----------------
-
         System.out.println(
                 "Alice active loans: "
-                        + library
-                        .getLoans(alice.getId())
-                        .size());
+                        + library.getLoans(alice.getId()).size());
 
         System.out.println(
                 "Bob active loans: "
-                        + library
-                        .getLoans(bob.getId())
-                        .size());
+                        + library.getLoans(bob.getId()).size());
     }
 }

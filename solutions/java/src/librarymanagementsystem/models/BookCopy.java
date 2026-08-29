@@ -18,7 +18,6 @@ public class BookCopy {
     }
 
     public synchronized boolean tryCheckout() {
-
         if (status != BookCopyStatus.AVAILABLE) {
             return false;
         }
@@ -28,7 +27,6 @@ public class BookCopy {
     }
 
     public synchronized boolean tryReturn() {
-
         if (status != BookCopyStatus.CHECKED_OUT) {
             return false;
         }

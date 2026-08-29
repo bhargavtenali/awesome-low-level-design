@@ -22,16 +22,13 @@ public class TransactionService {
         return INSTANCE;
     }
 
-    public void checkout(
-            BookCopy copy,
-            Member member) {
+    public void checkout(BookCopy copy, Member member) {
 
         synchronized (copy) {
 
             if (!copy.isAvailable()) {
                 throw new IllegalStateException(
-                        "Book copy is not available: "
-                                + copy.getId());
+                        "Book copy is not available: " + copy.getId());
             }
 
             Loan loan = new Loan(copy, member);
@@ -43,18 +40,14 @@ public class TransactionService {
 
             if (existing != null) {
                 throw new IllegalStateException(
-                        "Book copy is already on loan: "
-                                + copy.getId());
+                        "Book copy is already on loan: " + copy.getId());
             }
 
             if (!copy.tryCheckout()) {
-                activeLoans.remove(
-                        copy.getId(),
-                        loan);
+                activeLoans.remove(copy.getId(), loan);
 
                 throw new IllegalStateException(
-                        "Book copy is not available: "
-                                + copy.getId());
+                        "Book copy is not available: " + copy.getId());
             }
 
             member.addLoan(loan);
@@ -67,8 +60,7 @@ public class TransactionService {
 
         synchronized (copy) {
 
-            Loan loan =
-                    activeLoans.get(copy.getId());
+            Loan loan = activeLoans.get(copy.getId());
 
             if (loan == null) {
                 throw new IllegalStateException(
@@ -84,19 +76,13 @@ public class TransactionService {
                         "Book copy was not borrowed by this member.");
             }
 
-            if (!activeLoans.remove(
-                    copy.getId(),
-                    loan)) {
-
+            if (!activeLoans.remove(copy.getId(), loan)) {
                 throw new IllegalStateException(
                         "Unable to return book copy.");
             }
 
             if (!copy.tryReturn()) {
-
-                activeLoans.putIfAbsent(
-                        copy.getId(),
-                        loan);
+                activeLoans.putIfAbsent(copy.getId(), loan);
 
                 throw new IllegalStateException(
                         "Book copy is not checked out.");

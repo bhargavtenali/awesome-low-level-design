@@ -2,6 +2,7 @@ package librarymanagementsystem;
 
 import librarymanagementsystem.models.Book;
 import librarymanagementsystem.models.BookCopy;
+import librarymanagementsystem.models.Loan;
 import librarymanagementsystem.models.Member;
 
 import java.util.ArrayList;
@@ -30,8 +31,6 @@ public class LibraryManagementSystem {
         return INSTANCE;
     }
 
-    // -------------------- Book Management --------------------
-
     public List<BookCopy> addBook(
             String id,
             String title,
@@ -45,22 +44,17 @@ public class LibraryManagementSystem {
         }
 
         Book book = new Book(id, title, author, isbn);
-
         catalog.addBook(book);
 
         List<BookCopy> bookCopies = new ArrayList<>();
 
         for (int i = 1; i <= numCopies; i++) {
             String copyId = id + "-c" + i;
-
             BookCopy copy = new BookCopy(copyId, book);
 
             copies.put(copyId, copy);
             bookCopies.add(copy);
         }
-
-        System.out.println(
-                "Added " + numCopies + " copies of '" + title + "'.");
 
         return List.copyOf(bookCopies);
     }
@@ -69,14 +63,13 @@ public class LibraryManagementSystem {
         Book book = catalog.getBook(bookId);
 
         if (book == null) {
-            throw new IllegalArgumentException("Book not found: " + bookId);
+            throw new IllegalArgumentException(
+                    "Book not found: " + bookId);
         }
 
-        boolean hasActiveLoan =
-                book.getCopies()
-                        .stream()
-                        .anyMatch(copy ->
-                                !copy.isAvailable());
+        boolean hasActiveLoan = book.getCopies()
+                .stream()
+                .anyMatch(copy -> !copy.isAvailable());
 
         if (hasActiveLoan) {
             throw new IllegalStateException(
@@ -90,10 +83,7 @@ public class LibraryManagementSystem {
         catalog.removeBook(bookId);
     }
 
-    // -------------------- Member Management --------------------
-
     public Member addMember(String id, String name) {
-
         Member member = new Member(id, name);
 
         Member existing = members.putIfAbsent(id, member);
@@ -106,10 +96,7 @@ public class LibraryManagementSystem {
         return member;
     }
 
-    // -------------------- Borrow / Return --------------------
-
     public void checkout(String memberId, String copyId) {
-
         Member member = members.get(memberId);
         BookCopy copy = copies.get(copyId);
 
@@ -127,7 +114,6 @@ public class LibraryManagementSystem {
     }
 
     public void returnBook(String memberId, String copyId) {
-
         Member member = members.get(memberId);
         BookCopy copy = copies.get(copyId);
 
@@ -144,8 +130,6 @@ public class LibraryManagementSystem {
         transactionService.returnBook(copy, member);
     }
 
-    // -------------------- Search --------------------
-
     public List<Book> searchByTitle(String title) {
         return catalog.searchByTitle(title);
     }
@@ -158,10 +142,7 @@ public class LibraryManagementSystem {
         return catalog.searchByIsbn(isbn);
     }
 
-    // -------------------- Utility --------------------
-
     public List<BookCopy> getCopies(String bookId) {
-
         Book book = catalog.getBook(bookId);
 
         if (book == null) {
@@ -172,9 +153,7 @@ public class LibraryManagementSystem {
         return book.getCopies();
     }
 
-    public List<librarymanagementsystem.models.Loan> getLoans(
-            String memberId) {
-
+    public List<Loan> getLoans(String memberId) {
         Member member = members.get(memberId);
 
         if (member == null) {
@@ -186,7 +165,6 @@ public class LibraryManagementSystem {
     }
 
     public void printCatalog() {
-
         System.out.println("\n--- Library Catalog ---");
 
         for (Book book : catalog.getAllBooks()) {
