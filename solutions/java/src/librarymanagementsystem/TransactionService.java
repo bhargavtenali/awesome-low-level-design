@@ -37,8 +37,7 @@ public class TransactionService {
             if (!copy.tryCheckout()) {
                 activeLoans.remove(copy.getId(), loan);
 
-                throw new IllegalStateException(
-                        "Book copy is not available: " + copy.getId());
+                throw new IllegalStateException("Book copy is not available: " + copy.getId());
             }
 
             member.addLoan(loan);
