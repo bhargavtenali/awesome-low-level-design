@@ -9,11 +9,9 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class TransactionService {
 
-    private static final TransactionService INSTANCE =
-            new TransactionService();
+    private static final TransactionService INSTANCE = new TransactionService();
 
-    private final Map<String, Loan> activeLoans =
-            new ConcurrentHashMap<>();
+    private final Map<String, Loan> activeLoans = new ConcurrentHashMap<>();
 
     private TransactionService() {
     }
@@ -23,9 +21,7 @@ public class TransactionService {
     }
 
     public void checkout(BookCopy copy, Member member) {
-
         synchronized (copy) {
-
             if (!copy.isAvailable()) {
                 throw new IllegalStateException(
                         "Book copy is not available: " + copy.getId());
@@ -33,10 +29,7 @@ public class TransactionService {
 
             Loan loan = new Loan(copy, member);
 
-            Loan existing =
-                    activeLoans.putIfAbsent(
-                            copy.getId(),
-                            loan);
+            Loan existing = activeLoans.putIfAbsent(copy.getId(), loan);
 
             if (existing != null) {
                 throw new IllegalStateException(
@@ -54,24 +47,16 @@ public class TransactionService {
         }
     }
 
-    public void returnBook(
-            BookCopy copy,
-            Member member) {
-
+    public void returnBook(BookCopy copy, Member member) {
         synchronized (copy) {
-
             Loan loan = activeLoans.get(copy.getId());
 
             if (loan == null) {
                 throw new IllegalStateException(
-                        "Book copy is not currently on loan: "
-                                + copy.getId());
+                        "Book copy is not currently on loan: " + copy.getId());
             }
 
-            if (!loan.getMember()
-                    .getId()
-                    .equals(member.getId())) {
-
+            if (!loan.getMember().getId().equals(member.getId())) {
                 throw new IllegalStateException(
                         "Book copy was not borrowed by this member.");
             }

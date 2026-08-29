@@ -9,16 +9,9 @@ public class Book {
     private final String title;
     private final String author;
     private final String isbn;
+    private final List<BookCopy> copies = new CopyOnWriteArrayList<>();
 
-    private final List<BookCopy> copies =
-            new CopyOnWriteArrayList<>();
-
-    public Book(
-            String id,
-            String title,
-            String author,
-            String isbn) {
-
+    public Book(String id, String title, String author, String isbn) {
         this.id = id;
         this.title = title;
         this.author = author;

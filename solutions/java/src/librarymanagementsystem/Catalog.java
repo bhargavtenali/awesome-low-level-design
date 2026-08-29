@@ -10,15 +10,13 @@ import java.util.stream.Collectors;
 
 public class Catalog {
 
-    private final Map<String, Book> books =
-            new ConcurrentHashMap<>();
+    private final Map<String, Book> books = new ConcurrentHashMap<>();
 
     public void addBook(Book book) {
         Book existing = books.putIfAbsent(book.getId(), book);
 
         if (existing != null) {
-            throw new IllegalArgumentException(
-                    "Book already exists: " + book.getId());
+            throw new IllegalArgumentException("Book already exists: " + book.getId());
         }
     }
 
@@ -39,10 +37,7 @@ public class Catalog {
 
         return books.values()
                 .stream()
-                .filter(book ->
-                        book.getTitle()
-                                .toLowerCase(Locale.ROOT)
-                                .contains(query))
+                .filter(book -> book.getTitle().toLowerCase(Locale.ROOT).contains(query))
                 .collect(Collectors.toList());
     }
 
@@ -51,10 +46,7 @@ public class Catalog {
 
         return books.values()
                 .stream()
-                .filter(book ->
-                        book.getAuthor()
-                                .toLowerCase(Locale.ROOT)
-                                .contains(query))
+                .filter(book -> book.getAuthor().toLowerCase(Locale.ROOT).contains(query))
                 .collect(Collectors.toList());
     }
 

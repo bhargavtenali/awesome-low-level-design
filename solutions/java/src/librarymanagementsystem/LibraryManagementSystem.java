@@ -12,8 +12,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class LibraryManagementSystem {
 
-    private static final LibraryManagementSystem INSTANCE =
-            new LibraryManagementSystem();
+    private static final LibraryManagementSystem INSTANCE = new LibraryManagementSystem();
 
     private final Catalog catalog;
     private final Map<String, Member> members;
@@ -31,16 +30,9 @@ public class LibraryManagementSystem {
         return INSTANCE;
     }
 
-    public List<BookCopy> addBook(
-            String id,
-            String title,
-            String author,
-            String isbn,
-            int numCopies) {
-
+    public List<BookCopy> addBook(String id, String title, String author, String isbn, int numCopies) {
         if (numCopies <= 0) {
-            throw new IllegalArgumentException(
-                    "Number of copies must be greater than zero.");
+            throw new IllegalArgumentException("Number of copies must be greater than zero.");
         }
 
         Book book = new Book(id, title, author, isbn);
@@ -63,8 +55,7 @@ public class LibraryManagementSystem {
         Book book = catalog.getBook(bookId);
 
         if (book == null) {
-            throw new IllegalArgumentException(
-                    "Book not found: " + bookId);
+            throw new IllegalArgumentException("Book not found: " + bookId);
         }
 
         boolean hasActiveLoan = book.getCopies()
@@ -85,12 +76,10 @@ public class LibraryManagementSystem {
 
     public Member addMember(String id, String name) {
         Member member = new Member(id, name);
-
         Member existing = members.putIfAbsent(id, member);
 
         if (existing != null) {
-            throw new IllegalArgumentException(
-                    "Member already exists: " + id);
+            throw new IllegalArgumentException("Member already exists: " + id);
         }
 
         return member;
@@ -101,13 +90,11 @@ public class LibraryManagementSystem {
         BookCopy copy = copies.get(copyId);
 
         if (member == null) {
-            throw new IllegalArgumentException(
-                    "Member not found: " + memberId);
+            throw new IllegalArgumentException("Member not found: " + memberId);
         }
 
         if (copy == null) {
-            throw new IllegalArgumentException(
-                    "Book copy not found: " + copyId);
+            throw new IllegalArgumentException("Book copy not found: " + copyId);
         }
 
         transactionService.checkout(copy, member);
@@ -118,13 +105,11 @@ public class LibraryManagementSystem {
         BookCopy copy = copies.get(copyId);
 
         if (member == null) {
-            throw new IllegalArgumentException(
-                    "Member not found: " + memberId);
+            throw new IllegalArgumentException("Member not found: " + memberId);
         }
 
         if (copy == null) {
-            throw new IllegalArgumentException(
-                    "Book copy not found: " + copyId);
+            throw new IllegalArgumentException("Book copy not found: " + copyId);
         }
 
         transactionService.returnBook(copy, member);
@@ -146,8 +131,7 @@ public class LibraryManagementSystem {
         Book book = catalog.getBook(bookId);
 
         if (book == null) {
-            throw new IllegalArgumentException(
-                    "Book not found: " + bookId);
+            throw new IllegalArgumentException("Book not found: " + bookId);
         }
 
         return book.getCopies();
@@ -157,8 +141,7 @@ public class LibraryManagementSystem {
         Member member = members.get(memberId);
 
         if (member == null) {
-            throw new IllegalArgumentException(
-                    "Member not found: " + memberId);
+            throw new IllegalArgumentException("Member not found: " + memberId);
         }
 
         return member.getLoans();
