@@ -1,13 +1,66 @@
 package librarymanagementsystem.models;
 
-public class Book extends LibraryItem {
-    private final String author;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
-    public Book(String id, String title, String author) {
-        super(id, title);
+public class Book {
+
+    private final String id;
+    private final String title;
+    private final String author;
+    private final String isbn;
+
+    private final List<BookCopy> copies =
+            new CopyOnWriteArrayList<>();
+
+    public Book(
+            String id,
+            String title,
+            String author,
+            String isbn) {
+
+        this.id = id;
+        this.title = title;
         this.author = author;
+        this.isbn = isbn;
     }
 
-    @Override
-    public String getAuthorOrPublisher() { return author; }
+    public void addCopy(BookCopy copy) {
+        copies.add(copy);
+    }
+
+    public List<BookCopy> getCopies() {
+        return List.copyOf(copies);
+    }
+
+    public BookCopy getAvailableCopy() {
+
+        return copies.stream()
+                .filter(BookCopy::isAvailable)
+                .findFirst()
+                .orElse(null);
+    }
+
+    public long getAvailableCopyCount() {
+
+        return copies.stream()
+                .filter(BookCopy::isAvailable)
+                .count();
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public String getAuthor() {
+        return author;
+    }
+
+    public String getIsbn() {
+        return isbn;
+    }
 }

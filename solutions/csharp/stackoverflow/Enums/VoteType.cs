@@ -1,5 +1,0 @@
-enum VoteType
-{
-    UPVOTE,
-    DOWNVOTE
-}

@@ -1,27 +1,55 @@
 package librarymanagementsystem.models;
 
-
-import librarymanagementsystem.state.AvailableState;
-import librarymanagementsystem.state.ItemState;
+import librarymanagementsystem.enums.BookCopyStatus;
 
 public class BookCopy {
-    private final String id;
-    private final LibraryItem item;
-    private ItemState currentState;
 
-    public BookCopy(String id, LibraryItem item) {
+    private final String id;
+    private final Book book;
+
+    private BookCopyStatus status;
+
+    public BookCopy(String id, Book book) {
         this.id = id;
-        this.item = item;
-        this.currentState = new AvailableState();
-        item.addCopy(this);
+        this.book = book;
+        this.status = BookCopyStatus.AVAILABLE;
+
+        book.addCopy(this);
     }
 
-    public void checkout(Member member) { currentState.checkout(this, member); }
-    public void returnItem() { currentState.returnItem(this); }
-    public void placeHold(Member member) { currentState.placeHold(this, member); }
+    public synchronized boolean tryCheckout() {
 
-    public void setState(ItemState state) { this.currentState = state; }
-    public String getId() { return id; }
-    public LibraryItem getItem() { return item; }
-    public boolean isAvailable() { return currentState instanceof AvailableState; }
+        if (status != BookCopyStatus.AVAILABLE) {
+            return false;
+        }
+
+        status = BookCopyStatus.CHECKED_OUT;
+        return true;
+    }
+
+    public synchronized boolean tryReturn() {
+
+        if (status != BookCopyStatus.CHECKED_OUT) {
+            return false;
+        }
+
+        status = BookCopyStatus.AVAILABLE;
+        return true;
+    }
+
+    public synchronized boolean isAvailable() {
+        return status == BookCopyStatus.AVAILABLE;
+    }
+
+    public synchronized BookCopyStatus getStatus() {
+        return status;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public Book getBook() {
+        return book;
+    }
 }

@@ -1,5 +1,0 @@
-enum SubscriptionTier
-{
-    FREE,
-    PREMIUM
-}

@@ -1,89 +1,205 @@
 package librarymanagementsystem;
 
-import librarymanagementsystem.enums.ItemType;
-import librarymanagementsystem.factory.ItemFactory;
+import librarymanagementsystem.models.Book;
 import librarymanagementsystem.models.BookCopy;
-import librarymanagementsystem.models.LibraryItem;
 import librarymanagementsystem.models.Member;
-import librarymanagementsystem.strategy.SearchStrategy;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class LibraryManagementSystem {
-    private static final LibraryManagementSystem INSTANCE = new LibraryManagementSystem(); // singleton with eager initialization
-    private final Map<String, LibraryItem> catalog = new HashMap<>();
-    private final Map<String, Member> members = new HashMap<>();
-    private final Map<String, BookCopy> copies = new HashMap<>();
 
-    private LibraryManagementSystem() {}
-    public static LibraryManagementSystem getInstance() { return INSTANCE; }
+    private static final LibraryManagementSystem INSTANCE =
+            new LibraryManagementSystem();
 
-    // --- Item Management ---
-    public List<BookCopy> addItem(ItemType type, String id, String title, String author, int numCopies) {
+    private final Catalog catalog;
+    private final Map<String, Member> members;
+    private final Map<String, BookCopy> copies;
+    private final TransactionService transactionService;
+
+    private LibraryManagementSystem() {
+        this.catalog = new Catalog();
+        this.members = new ConcurrentHashMap<>();
+        this.copies = new ConcurrentHashMap<>();
+        this.transactionService = TransactionService.getInstance();
+    }
+
+    public static LibraryManagementSystem getInstance() {
+        return INSTANCE;
+    }
+
+    // -------------------- Book Management --------------------
+
+    public List<BookCopy> addBook(
+            String id,
+            String title,
+            String author,
+            String isbn,
+            int numCopies) {
+
+        if (numCopies <= 0) {
+            throw new IllegalArgumentException(
+                    "Number of copies must be greater than zero.");
+        }
+
+        Book book = new Book(id, title, author, isbn);
+
+        catalog.addBook(book);
+
         List<BookCopy> bookCopies = new ArrayList<>();
-        LibraryItem item = ItemFactory.createItem(type, id, title, author);
-        catalog.put(id, item);
-        for (int i = 0; i < numCopies; i++) {
-            String copyId = id + "-c" + (i + 1);
-            BookCopy copy = new BookCopy(copyId, item);
+
+        for (int i = 1; i <= numCopies; i++) {
+            String copyId = id + "-c" + i;
+
+            BookCopy copy = new BookCopy(copyId, book);
+
             copies.put(copyId, copy);
             bookCopies.add(copy);
         }
-        System.out.println("Added " + numCopies + " copies of '" + title + "'");
-        return bookCopies;
+
+        System.out.println(
+                "Added " + numCopies + " copies of '" + title + "'.");
+
+        return List.copyOf(bookCopies);
     }
 
-    // --- User Management ---
+    public void removeBook(String bookId) {
+        Book book = catalog.getBook(bookId);
+
+        if (book == null) {
+            throw new IllegalArgumentException("Book not found: " + bookId);
+        }
+
+        boolean hasActiveLoan =
+                book.getCopies()
+                        .stream()
+                        .anyMatch(copy ->
+                                !copy.isAvailable());
+
+        if (hasActiveLoan) {
+            throw new IllegalStateException(
+                    "Cannot remove book while a copy is checked out.");
+        }
+
+        for (BookCopy copy : book.getCopies()) {
+            copies.remove(copy.getId());
+        }
+
+        catalog.removeBook(bookId);
+    }
+
+    // -------------------- Member Management --------------------
+
     public Member addMember(String id, String name) {
+
         Member member = new Member(id, name);
-        members.put(id, member);
+
+        Member existing = members.putIfAbsent(id, member);
+
+        if (existing != null) {
+            throw new IllegalArgumentException(
+                    "Member already exists: " + id);
+        }
+
         return member;
     }
 
-    // --- Core Actions ---
+    // -------------------- Borrow / Return --------------------
+
     public void checkout(String memberId, String copyId) {
+
         Member member = members.get(memberId);
         BookCopy copy = copies.get(copyId);
-        if (member != null && copy != null) {
-            copy.checkout(member);
-        } else {
-            System.out.println("Error: Invalid member or copy ID.");
+
+        if (member == null) {
+            throw new IllegalArgumentException(
+                    "Member not found: " + memberId);
         }
+
+        if (copy == null) {
+            throw new IllegalArgumentException(
+                    "Book copy not found: " + copyId);
+        }
+
+        transactionService.checkout(copy, member);
     }
 
-    public void returnItem(String copyId) {
-        BookCopy copy = copies.get(copyId);
-        if (copy != null) {
-            copy.returnItem();
-        } else {
-            System.out.println("Error: Invalid copy ID.");
-        }
-    }
+    public void returnBook(String memberId, String copyId) {
 
-    public void placeHold(String memberId, String itemId) {
         Member member = members.get(memberId);
-        LibraryItem item = catalog.get(itemId);
-        if (member != null && item != null) {
-            // Place hold on any copy that is checked out
-            item.getCopies().stream()
-                    .filter(c -> !c.isAvailable())
-                    .findFirst()
-                    .ifPresent(copy -> copy.placeHold(member));
+        BookCopy copy = copies.get(copyId);
+
+        if (member == null) {
+            throw new IllegalArgumentException(
+                    "Member not found: " + memberId);
         }
+
+        if (copy == null) {
+            throw new IllegalArgumentException(
+                    "Book copy not found: " + copyId);
+        }
+
+        transactionService.returnBook(copy, member);
     }
 
-    // --- Search (Using Strategy Pattern) ---
-    public List<LibraryItem> search(String query, SearchStrategy strategy) {
-        return strategy.search(query, new ArrayList<>(catalog.values()));
+    // -------------------- Search --------------------
+
+    public List<Book> searchByTitle(String title) {
+        return catalog.searchByTitle(title);
+    }
+
+    public List<Book> searchByAuthor(String author) {
+        return catalog.searchByAuthor(author);
+    }
+
+    public List<Book> searchByIsbn(String isbn) {
+        return catalog.searchByIsbn(isbn);
+    }
+
+    // -------------------- Utility --------------------
+
+    public List<BookCopy> getCopies(String bookId) {
+
+        Book book = catalog.getBook(bookId);
+
+        if (book == null) {
+            throw new IllegalArgumentException(
+                    "Book not found: " + bookId);
+        }
+
+        return book.getCopies();
+    }
+
+    public List<librarymanagementsystem.models.Loan> getLoans(
+            String memberId) {
+
+        Member member = members.get(memberId);
+
+        if (member == null) {
+            throw new IllegalArgumentException(
+                    "Member not found: " + memberId);
+        }
+
+        return member.getLoans();
     }
 
     public void printCatalog() {
+
         System.out.println("\n--- Library Catalog ---");
-        catalog.values().forEach(item -> System.out.printf("ID: %s, Title: %s, Author/Publisher: %s, Available: %d\n",
-                item.getId(), item.getTitle(), item.getAuthorOrPublisher(), item.getAvailableCopyCount()));
+
+        for (Book book : catalog.getAllBooks()) {
+            System.out.printf(
+                    "ID: %s, Title: %s, Author: %s, ISBN: %s, Available: %d/%d%n",
+                    book.getId(),
+                    book.getTitle(),
+                    book.getAuthor(),
+                    book.getIsbn(),
+                    book.getAvailableCopyCount(),
+                    book.getCopies().size());
+        }
+
         System.out.println("-----------------------\n");
     }
 }

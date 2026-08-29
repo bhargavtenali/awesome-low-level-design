@@ -1,5 +1,0 @@
-enum ItemType
-{
-    BOOK,
-    MAGAZINE
-}

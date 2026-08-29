@@ -1,5 +1,0 @@
-enum OrderType
-{
-    MARKET,
-    LIMIT
-}
