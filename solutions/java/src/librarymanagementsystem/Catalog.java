@@ -3,7 +3,6 @@ package librarymanagementsystem;
 import librarymanagementsystem.models.Book;
 
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -33,20 +32,20 @@ public class Catalog {
     }
 
     public List<Book> searchByTitle(String title) {
-        String query = title.toLowerCase(Locale.ROOT);
+        String query = title.toLowerCase();
 
         return books.values()
                 .stream()
-                .filter(book -> book.getTitle().toLowerCase(Locale.ROOT).contains(query))
+                .filter(book -> book.getTitle().toLowerCase().contains(query))
                 .collect(Collectors.toList());
     }
 
     public List<Book> searchByAuthor(String author) {
-        String query = author.toLowerCase(Locale.ROOT);
+        String query = author.toLowerCase();
 
         return books.values()
                 .stream()
-                .filter(book -> book.getAuthor().toLowerCase(Locale.ROOT).contains(query))
+                .filter(book -> book.getAuthor().toLowerCase().contains(query))
                 .collect(Collectors.toList());
     }
 

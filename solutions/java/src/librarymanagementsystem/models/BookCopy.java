@@ -9,6 +9,8 @@ public class BookCopy {
 
     private BookCopyStatus status;
 
+    private final Object lock = new Object();
+
     public BookCopy(String id, Book book) {
         this.id = id;
         this.book = book;
@@ -50,4 +52,6 @@ public class BookCopy {
     public Book getBook() {
         return book;
     }
+
+    public Object getLock() { return lock; }
 }

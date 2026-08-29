@@ -1,13 +1,13 @@
 package librarymanagementsystem.models;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 public class Member {
 
     private final String id;
     private final String name;
-    private final List<Loan> loans = new CopyOnWriteArrayList<>();
+    private final List<Loan> loans = new ArrayList<>();
 
     public Member(String id, String name) {
         this.id = id;

@@ -1,7 +1,7 @@
 package librarymanagementsystem.models;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 public class Book {
 
@@ -9,7 +9,7 @@ public class Book {
     private final String title;
     private final String author;
     private final String isbn;
-    private final List<BookCopy> copies = new CopyOnWriteArrayList<>();
+    private final List<BookCopy> copies = new ArrayList<>();
 
     public Book(String id, String title, String author, String isbn) {
         this.id = id;
