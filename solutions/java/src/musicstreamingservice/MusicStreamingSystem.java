@@ -113,6 +113,10 @@ public class MusicStreamingSystem {
         getPlayer(userId).seek(positionInSeconds);
     }
 
+    public void stop(String userId) {
+        getPlayer(userId).clickStop();
+    }
+
     public List<Song> searchSongsByTitle(String title) {
         return searchService.searchSongsByTitle(new ArrayList<>(songs.values()), title);
     }

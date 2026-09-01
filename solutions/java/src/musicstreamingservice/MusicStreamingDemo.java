@@ -39,6 +39,7 @@ public class MusicStreamingDemo {
         system.seek(alice.getId(), 30);
         system.next(alice.getId());
         system.pause(alice.getId());
+        system.stop(alice.getId());
 
         //FIXME: Not Needed
         System.out.println("\n=== Concurrent Playback ===");
