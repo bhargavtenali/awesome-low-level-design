@@ -1,75 +1,70 @@
 package musicstreamingservice;
 
+import musicstreamingservice.entities.Album;
+import musicstreamingservice.entities.Artist;
+import musicstreamingservice.entities.Playlist;
+import musicstreamingservice.entities.Song;
+import musicstreamingservice.entities.User;
 import musicstreamingservice.enums.SubscriptionTier;
-import musicstreamingservice.entities.*;
 
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 public class MusicStreamingDemo {
-    public static void main(String[] args) throws InterruptedException {
+
+    public static void main(String[] args) throws Exception {
         MusicStreamingSystem system = MusicStreamingSystem.getInstance();
 
-        // --- Setup Catalog ---
-        Artist daftPunk = new Artist("art1", "Daft Punk");
-        system.addArtist(daftPunk);
-
-        Album discovery = new Album("Discovery");
-        Song s1 = system.addSong("s1", "One More Time", daftPunk.getId(), 320);
-        Song s2 = system.addSong("s2", "Aerodynamic", daftPunk.getId(), 212);
-        Song s3 = system.addSong("s3", "Digital Love", daftPunk.getId(), 301);
-        Song s4 = system.addSong("s4", "Radioactive", daftPunk.getId(), 311);
+        Artist daftPunk = system.addArtist("Daft Punk");
+        Album discovery = system.addAlbum("Discovery");
+        Song s1 = system.addSong("One More Time", daftPunk.getId(), 320);
+        Song s2 =system.addSong("Harder Better Faster Stronger", daftPunk.getId(),225);
+        Song s3 =system.addSong("Digital Love", daftPunk.getId(), 300);
         discovery.addTrack(s1);
         discovery.addTrack(s2);
         discovery.addTrack(s3);
-        discovery.addTrack(s4);
 
-        // --- Register Users (Builder Pattern) ---
-        User freeUser = new User.Builder("Alice").withSubscription(SubscriptionTier.FREE, 0).build();
-        User premiumUser = new User.Builder("Bob").withSubscription(SubscriptionTier.PREMIUM, 0).build();
-        system.registerUser(freeUser);
-        system.registerUser(premiumUser);
+        User alice = system.registerUser("Alice", SubscriptionTier.FREE);
+        User bob = system.registerUser("Bob", SubscriptionTier.PREMIUM);
+        alice.followArtist(daftPunk);
+        bob.followArtist(daftPunk);
+        daftPunk.releaseAlbum(discovery);
 
-        // --- Observer Pattern: User follows artist ---
-        System.out.println("--- Observer Pattern Demo ---");
-        premiumUser.followArtist(daftPunk);
-        daftPunk.releaseAlbum(discovery); // This will notify Bob
-        System.out.println();
+        System.out.println("\n=== Alice Playback ===");
 
-        // --- Strategy Pattern: Playback behavior ---
-        System.out.println("--- Strategy Pattern (Free vs Premium) & State Pattern (Player) Demo ---");
-        Player player = system.getPlayer();
-        player.load(discovery, freeUser);
+        Playlist alicePlaylist = alice.createPlaylist("Favorites");
+        discovery.getTracks().forEach(alicePlaylist::addTrack);
 
-        // --- State Pattern: Controlling the player ---
-        player.clickPlay(); // Plays song 1
-        player.clickNext(); // Plays song 2
-        player.clickPause(); // Pauses song 2
-        player.clickPlay(); // Resumes song 2
-        player.clickNext(); // Plays song 3
-        player.clickNext(); // Plays song 4 (ad for free user)
-        System.out.println();
+        system.load(alice.getId(), alicePlaylist);
+        system.play(alice.getId());
+        system.seek(alice.getId(), 30);
+        system.next(alice.getId());
+        system.pause(alice.getId());
 
-        // --- Premium user experience (no ads) ---
-        System.out.println("--- Premium User Experience ---");
-        player.load(discovery, premiumUser);
-        player.clickPlay();
-        player.clickNext();
-        System.out.println();
+        System.out.println("\n=== Concurrent Playback ===");
 
-        // --- Composite Pattern: Play a playlist ---
-        System.out.println("--- Composite Pattern Demo ---");
-        Playlist myPlaylist = new Playlist("My Awesome Mix");
-        myPlaylist.addTrack(s3); // Digital Love
-        myPlaylist.addTrack(s1); // One More Time
+        system.load(alice.getId(), discovery);
+        system.load(bob.getId(), discovery);
 
-        player.load(myPlaylist, premiumUser);
-        player.clickPlay();
-        player.clickNext();
-        System.out.println();
+        ExecutorService executor = Executors.newFixedThreadPool(2);
 
-        // --- Search ---
-        System.out.println("--- Search Demo ---");
-        List<Song> searchResults = system.searchSongsByTitle("love");
-        System.out.println("Search results for 'love': " + searchResults);
+        try {
+            Future<?> aliceTask = executor.submit(() -> {
+                system.play(alice.getId());
+                system.next(alice.getId());
+            });
+
+            Future<?> bobTask = executor.submit(() -> {
+                system.play(bob.getId());
+                system.next(bob.getId());
+            });
+
+            aliceTask.get();
+            bobTask.get();
+        } finally {
+            executor.shutdown();
+        }
     }
 }

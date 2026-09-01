@@ -2,9 +2,12 @@ package musicstreamingservice.entities;
 
 import musicstreamingservice.enums.SubscriptionTier;
 import musicstreamingservice.observer.ArtistObserver;
+import musicstreamingservice.strategies.playback.FreePlaybackStrategy;
 import musicstreamingservice.strategies.playback.PlaybackStrategy;
-import musicstreamingservice.strategies.playback.PlaybackStrategyFactory;
+import musicstreamingservice.strategies.playback.PremiumPlaybackStrategy;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -14,45 +17,76 @@ public class User implements ArtistObserver {
     private final String name;
     private final PlaybackStrategy playbackStrategy;
     private final Set<Artist> followedArtists = ConcurrentHashMap.newKeySet();
+    private final List<Playlist> playlists = new ArrayList<>();
+    private final List<Song> listeningHistory = new ArrayList<>();
 
-    private User(String id, String name, PlaybackStrategy strategy) {
-        this.id = id;
+    public User(String name, SubscriptionTier tier) {
+        this(name, tier, 0);
+    }
+
+    public User(String name, SubscriptionTier tier, int songsPlayed) {
+        this.id = UUID.randomUUID().toString();
         this.name = name;
-        this.playbackStrategy = strategy;
+
+        if (tier == SubscriptionTier.PREMIUM) {
+            this.playbackStrategy = new PremiumPlaybackStrategy();
+        } else {
+            this.playbackStrategy = new FreePlaybackStrategy(songsPlayed);
+        }
     }
 
     public void followArtist(Artist artist) {
-        followedArtists.add(artist);
-        artist.addObserver(this);
+        if (followedArtists.add(artist)) {
+            artist.addFollower(this);
+        }
+    }
+
+    public void unfollowArtist(Artist artist) {
+        if (followedArtists.remove(artist)) {
+            artist.removeFollower(this);
+        }
+    }
+
+    public synchronized Playlist createPlaylist(String name) {
+        Playlist playlist = new Playlist(name);
+        playlists.add(playlist);
+        return playlist;
+    }
+
+    public synchronized List<Playlist> getPlaylists() {
+        return List.copyOf(playlists);
+    }
+
+    public synchronized void recordPlayedSong(Song song) {
+        listeningHistory.add(song);
+    }
+
+    public synchronized List<Song> getListeningHistory() {
+        return List.copyOf(listeningHistory);
+    }
+
+    public Set<Artist> getFollowedArtists() {
+        return Set.copyOf(followedArtists);
     }
 
     @Override
-    public void update(Artist artist, Album newAlbum) {
-        System.out.printf("[Notification for %s] Your followed artist %s just released a new album: %s!%n",
-                this.name, artist.getName(), newAlbum.getTitle());
+    public void update(Artist artist, Album album) {
+        System.out.printf(
+                "--- Notification for %s ---%nArtist %s released album %s.%n",
+                name,
+                artist.getName(),
+                album.getTitle());
     }
 
-    public PlaybackStrategy getPlaybackStrategy() { return playbackStrategy; }
+    public String getId() {
+        return id;
+    }
 
-    public String getId() { return id; }
-    public String getName() { return name; }
+    public String getName() {
+        return name;
+    }
 
-    // Builder Pattern
-    public static class Builder {
-        private final String id;
-        private final String name;
-        private PlaybackStrategy playbackStrategy;
-
-        public Builder(String name) {
-            this.id = UUID.randomUUID().toString();
-            this.name = name;
-        }
-        public Builder withSubscription(SubscriptionTier tier, int songsPlayed) {
-            this.playbackStrategy = PlaybackStrategyFactory.getStrategy(tier, songsPlayed);
-            return this;
-        }
-        public User build() {
-            return new User(id, name, playbackStrategy);
-        }
+    public PlaybackStrategy getPlaybackStrategy() {
+        return playbackStrategy;
     }
 }

@@ -14,6 +14,7 @@ public class Player {
     private int currentIndex = -1;
     private Song currentSong;
     private User currentUser;
+    private int currentPositionInSeconds;
 
     public Player() {
         this.state = new StoppedState();
@@ -22,39 +23,104 @@ public class Player {
 
     public synchronized void load(Playable playable, User user) {
         this.currentUser = user;
-        this.queue = playable.getTracks();
-        this.currentIndex = 0;
-        System.out.printf("Loaded %d tracks for user %s.%n", queue.size(), user.getName());
-        this.state = new StoppedState();
-        this.status = PlayerStatus.STOPPED;
+        this.queue = new ArrayList<>(playable.getTracks());
+        this.currentIndex = queue.isEmpty() ? -1 : 0;
+        this.currentSong = null;
+        this.currentPositionInSeconds = 0;
+
+        changeState(new StoppedState());
+        setStatus(PlayerStatus.STOPPED);
+
+        System.out.println("Loaded " + queue.size() + " track(s).");
     }
 
-    public void playCurrentSongInQueue() {
-        if (currentIndex >= 0 && currentIndex < queue.size()) {
-            Song songToPlay = queue.get(currentIndex);
-            currentUser.getPlaybackStrategy().play(songToPlay, this);
+    public synchronized void playCurrentSongInQueue() {
+        if (currentIndex < 0 || currentIndex >= queue.size()) {
+            System.out.println("No song available to play.");
+            return;
         }
+
+        Song songToPlay = queue.get(currentIndex);
+        currentUser.getPlaybackStrategy().play(songToPlay, this);
     }
 
-    // Methods for state transitions
-    public synchronized void clickPlay() { state.play(this); }
-    public synchronized void clickPause() { state.pause(this); }
+    public synchronized void clickPlay() {
+        state.play(this);
+    }
+
+    public synchronized void clickPause() {
+        state.pause(this);
+    }
 
     public synchronized void clickNext() {
         state.next(this);
     }
 
-    public boolean hasNextTrack() {
-        return currentIndex < queue.size() - 1;
+    public synchronized void clickStop() {
+        state.stop(this);
     }
 
-    public void moveToNextTrack() {
-        currentIndex++;
+    public synchronized boolean hasNextTrack() {
+        return currentIndex + 1 < queue.size();
     }
 
-    // Getters and Setters used by States
-    public void changeState(PlayerState state) { this.state = state; }
-    public void setStatus(PlayerStatus status) { this.status = status; }
-    public void setCurrentSong(Song song) { this.currentSong = song; }
-    public boolean hasQueue() { return !queue.isEmpty(); }
+    public synchronized void moveToNextTrack() {
+        if (hasNextTrack()) {
+            currentIndex++;
+            currentPositionInSeconds = 0;
+        }
+    }
+
+    public synchronized void seek(int positionInSeconds) {
+        if (currentSong == null) {
+            throw new IllegalStateException("No song is currently playing.");
+        }
+
+        if (positionInSeconds < 0 || positionInSeconds > currentSong.getDurationInSeconds()) {
+            throw new IllegalArgumentException("Invalid seek position.");
+        }
+
+        currentPositionInSeconds = positionInSeconds;
+
+        System.out.printf(
+                "Seeked %s to %d seconds.%n",
+                currentSong.getTitle(),
+                positionInSeconds);
+    }
+
+    public synchronized void changeState(PlayerState state) {
+        this.state = state;
+    }
+
+    public synchronized void setStatus(PlayerStatus status) {
+        this.status = status;
+        System.out.println("Player status: " + status);
+    }
+
+    public synchronized void setCurrentSong(Song song) {
+        this.currentSong = song;
+        this.currentPositionInSeconds = 0;
+
+        if (currentUser != null) {
+            currentUser.recordPlayedSong(song);
+        }
+
+        System.out.println("Now playing: " + song);
+    }
+
+    public synchronized PlayerStatus getStatus() {
+        return status;
+    }
+
+    public synchronized PlayerState getState() {
+        return state;
+    }
+
+    public synchronized Song getCurrentSong() {
+        return currentSong;
+    }
+
+    public synchronized int getCurrentPositionInSeconds() {
+        return currentPositionInSeconds;
+    }
 }
