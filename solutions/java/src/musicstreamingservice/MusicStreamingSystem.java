@@ -57,7 +57,6 @@ public class MusicStreamingSystem {
     public Album addAlbum(String name) {
         Album album = new Album(name);
         Album existing = albums.putIfAbsent(album.getId(), album);
-
         if (existing != null) {
             throw new IllegalArgumentException("Album already exists: " + album.getId());
         }
@@ -71,7 +70,6 @@ public class MusicStreamingSystem {
         }
         Song song = new Song(title, artist, durationInSeconds);
         Song existing = songs.putIfAbsent(song.getId(), song);
-
         if (existing != null) {
             throw new IllegalArgumentException("Song already exists: " + song.getId());
         }

@@ -27,10 +27,8 @@ public class Player {
         this.currentIndex = queue.isEmpty() ? -1 : 0;
         this.currentSong = null;
         this.currentPositionInSeconds = 0;
-
         changeState(new StoppedState());
         setStatus(PlayerStatus.STOPPED);
-
         System.out.println("Loaded " + queue.size() + " track(s).");
     }
 
@@ -39,7 +37,6 @@ public class Player {
             System.out.println("No song available to play.");
             return;
         }
-
         Song songToPlay = queue.get(currentIndex);
         currentUser.getPlaybackStrategy().play(songToPlay, this);
     }
@@ -60,6 +57,10 @@ public class Player {
         state.stop(this);
     }
 
+    public synchronized boolean hasQueue() {
+        return !queue.isEmpty();
+    }
+
     public synchronized boolean hasNextTrack() {
         return currentIndex + 1 < queue.size();
     }
@@ -75,13 +76,10 @@ public class Player {
         if (currentSong == null) {
             throw new IllegalStateException("No song is currently playing.");
         }
-
         if (positionInSeconds < 0 || positionInSeconds > currentSong.getDurationInSeconds()) {
             throw new IllegalArgumentException("Invalid seek position.");
         }
-
         currentPositionInSeconds = positionInSeconds;
-
         System.out.printf(
                 "Seeked %s to %d seconds.%n",
                 currentSong.getTitle(),
@@ -100,11 +98,9 @@ public class Player {
     public synchronized void setCurrentSong(Song song) {
         this.currentSong = song;
         this.currentPositionInSeconds = 0;
-
         if (currentUser != null) {
             currentUser.recordPlayedSong(song);
         }
-
         System.out.println("Now playing: " + song);
     }
 
