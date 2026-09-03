@@ -1,6 +1,7 @@
 package splitwise.entities;
 
 public class Split {
+
     private final User user;
     private final double amount;
 
@@ -9,6 +10,11 @@ public class Split {
         this.amount = amount;
     }
 
-    public User getUser() { return user; }
-    public double getAmount() { return amount; }
+    public User getUser() {
+        return user;
+    }
+
+    public double getAmount() {
+        return amount;
+    }
 }

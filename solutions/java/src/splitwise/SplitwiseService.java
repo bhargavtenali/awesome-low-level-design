@@ -1,111 +1,150 @@
 package splitwise;
 
-import splitwise.entities.*;
+import splitwise.entities.Expense;
+import splitwise.entities.Group;
+import splitwise.entities.Split;
+import splitwise.entities.Transaction;
+import splitwise.entities.User;
+import splitwise.strategy.SplitStrategy;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 public class SplitwiseService {
-    private static SplitwiseService instance;
-    private final Map<String, User> users = new HashMap<>();
-    private final Map<String, Group> groups = new HashMap<>();
+    private static final SplitwiseService instance = new SplitwiseService();
+    private final Map<String, User> users = new ConcurrentHashMap<>();
+    private final Map<String, Group> groups = new ConcurrentHashMap<>();
 
-    private SplitwiseService() {}
+    private SplitwiseService() {
+    }
 
     public static synchronized SplitwiseService getInstance() {
-        if (instance == null) {
-            instance = new SplitwiseService();
-        }
         return instance;
     }
 
-    // --- Setup Methods ---
     public User addUser(String name, String email) {
         User user = new User(name, email);
-        users.put(user.getId(), user);
+        User existing = users.putIfAbsent(user.getId(), user);
+        if (existing != null) {
+            throw new IllegalArgumentException("User already exists: " + user.getId());
+        }
         return user;
     }
 
     public Group addGroup(String name, List<User> members) {
         Group group = new Group(name, members);
-        groups.put(group.getId(), group);
+        Group existing = groups.putIfAbsent(group.getId(), group);
+        if (existing != null) {
+            throw new IllegalArgumentException("Group already exists: " + group.getId());
+        }
         return group;
     }
 
-    public User getUser(String id) { return users.get(id); }
-    public Group getGroup(String id) { return groups.get(id); }
+    public User getUser(String id) {
+        User user = users.get(id);
+        if (user == null) {
+            throw new IllegalArgumentException("User not found: " + id);
+        }
+        return user;
+    }
 
-    // --- Core Functional Methods (Facade) ---
-    public synchronized void createExpense(Expense expense) {
-        User paidBy = expense.getPaidBy();
+    public Group getGroup(String id) {
+        Group group = groups.get(id);
 
+        if (group == null) {
+            throw new IllegalArgumentException("Group not found: " + id);
+        }
+
+        return group;
+    }
+
+    public synchronized Expense createExpense(String description, double amount, User paidBy, List<User> participants,
+                                              SplitStrategy splitStrategy, List<Double> splitValues) {
+        Expense expense = new Expense(description, amount, paidBy, participants, splitStrategy, splitValues);
         for (Split split : expense.getSplits()) {
             User participant = split.getUser();
-            double amount = split.getAmount();
-
+            double share = split.getAmount();
             if (!paidBy.equals(participant)) {
-                paidBy.getBalanceSheet().adjustBalance(participant, amount); // for paidBy user add +balance against all others
-                participant.getBalanceSheet().adjustBalance(paidBy, -amount); // for all users other than paidBy, we add negative value in balance sheet
+                paidBy.getBalanceSheet().adjustBalance(participant, share);
+                participant.getBalanceSheet().adjustBalance(paidBy, -share);
             }
         }
-        System.out.println("Expense '" + expense.getDescription() + "' of amount " + expense.getAmount() + " created.");
+        System.out.println("Expense '" + description + "' of amount " + amount + " created.");
+        return expense;
     }
 
     public synchronized void settleUp(String payerId, String payeeId, double amount) {
-        User payer = users.get(payerId);
-        User payee = users.get(payeeId);
-        System.out.println(payer.getName() + " is settling up " + amount + " with " + payee.getName());
-        // Settlement is like a reverse expense. payer owes less to payee.
-
-        payee.getBalanceSheet().adjustBalance(payer, -amount);
+        if (amount <= 0) {
+            throw new IllegalArgumentException("Settlement amount must be positive.");
+        }
+        User payer = getUser(payerId);
+        User payee = getUser(payeeId);
+        if (payer.equals(payee)) {
+            throw new IllegalArgumentException("Payer and payee cannot be the same.");
+        }
+        double currentOwed = -payer.getBalanceSheet().getBalance(payee);
+        if (amount > currentOwed + 0.01) {
+            throw new IllegalArgumentException("Settlement amount exceeds outstanding debt.");
+        }
         payer.getBalanceSheet().adjustBalance(payee, amount);
+        payee.getBalanceSheet().adjustBalance(payer, -amount);
+        System.out.println(payer.getName() + " settled " + amount + " with " + payee.getName());
     }
 
     public void showBalanceSheet(String userId) {
-        User user = users.get(userId);
-        user.getBalanceSheet().showBalances();
+        getUser(userId).getBalanceSheet().showBalances();
     }
 
-    public List<Transaction> simplifyGroupDebts(String groupId) {
-        Group group = groups.get(groupId);
-        if (group == null) throw new IllegalArgumentException("Group not found");
-
-        // Calculate net balance for each member within the group context
+    public synchronized List<Transaction> simplifyGroupDebts(String groupId) {
+        Group group = getGroup(groupId);
         Map<User, Double> netBalances = new HashMap<>();
         for (User member : group.getMembers()) {
             double balance = 0;
-            for(Map.Entry<User, Double> entry : member.getBalanceSheet().getBalances().entrySet()) {
-                // Consider only balances with other group members
+            for (Map.Entry<User, Double> entry : member.getBalanceSheet().getBalances().entrySet()) {
                 if (group.getMembers().contains(entry.getKey())) {
                     balance += entry.getValue();
                 }
             }
             netBalances.put(member, balance);
         }
+        List<Map.Entry<User, Double>> creditors = netBalances.entrySet()
+                .stream()
+                .filter(entry -> entry.getValue() > 0.01)
+                .sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
+                .collect(Collectors.toList());
 
-        // Separate into creditors and debtors
-        List<Map.Entry<User, Double>> creditors = netBalances.entrySet().stream()
-                .filter(e -> e.getValue() > 0).collect(Collectors.toList());
-        List<Map.Entry<User, Double>> debtors = netBalances.entrySet().stream()
-                .filter(e -> e.getValue() < 0).collect(Collectors.toList());
-
-        creditors.sort(Map.Entry.comparingByValue(Comparator.reverseOrder()));
-        debtors.sort(Map.Entry.comparingByValue());
+        List<Map.Entry<User, Double>> debtors = netBalances.entrySet()
+                .stream()
+                .filter(entry -> entry.getValue() < -0.01)
+                .sorted(Map.Entry.comparingByValue())
+                .collect(Collectors.toList());
 
         List<Transaction> transactions = new ArrayList<>();
-        int i = 0, j = 0;
-        while (i < creditors.size() && j < debtors.size()) {
-            Map.Entry<User, Double> creditor = creditors.get(i);
-            Map.Entry<User, Double> debtor = debtors.get(j);
+        int creditorIndex = 0;
+        int debtorIndex = 0;
+        while (creditorIndex < creditors.size() && debtorIndex < debtors.size()) {
+            Map.Entry<User, Double> creditor = creditors.get(creditorIndex);
+            Map.Entry<User, Double> debtor = debtors.get(debtorIndex);
 
-            double amountToSettle = Math.min(creditor.getValue(), -debtor.getValue());
-            transactions.add(new Transaction(debtor.getKey(), creditor.getKey(), amountToSettle));
+            double amount = Math.min(creditor.getValue(), -debtor.getValue());
 
-            creditor.setValue(creditor.getValue() - amountToSettle);
-            debtor.setValue(debtor.getValue() + amountToSettle);
+            transactions.add(new Transaction(debtor.getKey(), creditor.getKey(), amount));
 
-            if (Math.abs(creditor.getValue()) < 0.01) i++;
-            if (Math.abs(debtor.getValue()) < 0.01) j++;
+            creditor.setValue(creditor.getValue() - amount);
+            debtor.setValue(debtor.getValue() + amount);
+
+            if (Math.abs(creditor.getValue()) < 0.01) {
+                creditorIndex++;
+            }
+
+            if (Math.abs(debtor.getValue()) < 0.01) {
+                debtorIndex++;
+            }
         }
         return transactions;
     }

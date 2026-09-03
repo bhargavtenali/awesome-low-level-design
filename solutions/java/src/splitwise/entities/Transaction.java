@@ -11,6 +11,18 @@ public class Transaction {
         this.amount = amount;
     }
 
+    public User getFrom() {
+        return from;
+    }
+
+    public User getTo() {
+        return to;
+    }
+
+    public double getAmount() {
+        return amount;
+    }
+
     @Override
     public String toString() {
         return from.getName() + " should pay " + to.getName() + " $" + String.format("%.2f", amount);

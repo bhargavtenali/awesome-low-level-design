@@ -6,6 +6,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public class Expense {
+
     private final String id;
     private final String description;
     private final double amount;
@@ -13,49 +14,61 @@ public class Expense {
     private final List<Split> splits;
     private final LocalDateTime timestamp;
 
-    private Expense(ExpenseBuilder builder) {
-        this.id = builder.id;
-        this.description = builder.description;
-        this.amount = builder.amount;
-        this.paidBy = builder.paidBy;
+    public Expense(String description, double amount, User paidBy, List<User> participants, SplitStrategy splitStrategy,
+                   List<Double> splitValues) {
+        if (description == null || description.isBlank()) {
+            throw new IllegalArgumentException("Description is required.");
+        }
+        if (amount <= 0) {
+            throw new IllegalArgumentException("Expense amount must be positive.");
+        }
+        if (paidBy == null) {
+            throw new IllegalArgumentException("Paid-by user is required.");
+        }
+        if (participants == null || participants.isEmpty()) {
+            throw new IllegalArgumentException("At least one participant is required.");
+        }
+        if (splitStrategy == null) {
+            throw new IllegalArgumentException("Split strategy is required.");
+        }
+
+        this.id = java.util.UUID.randomUUID().toString();
+        this.description = description;
+        this.amount = amount;
+        this.paidBy = paidBy;
         this.timestamp = LocalDateTime.now();
 
-        // Use the strategy to calculate splits
-        this.splits = builder.splitStrategy.calculateSplits(builder.amount, builder.paidBy, builder.participants, builder.splitValues);
-    }
+        List<Double> values = splitValues == null ? List.of() : splitValues;
+        this.splits = List.copyOf(splitStrategy.calculateSplits(amount, paidBy, participants, values));
 
-    // Getters...
-    public String getId() { return id; }
-    public String getDescription() { return description; }
-    public double getAmount() { return amount; }
-    public User getPaidBy() { return paidBy; }
-    public List<Split> getSplits() { return splits; }
+        double totalSplit = this.splits.stream().mapToDouble(Split::getAmount).sum();
 
-    // --- Builder Pattern ---
-    public static class ExpenseBuilder {
-        private String id;
-        private String description;
-        private double amount;
-        private User paidBy;
-        private List<User> participants;
-        private SplitStrategy splitStrategy;
-        private List<Double> splitValues; // For EXACT and PERCENTAGE splits
-
-        public ExpenseBuilder setId(String id) { this.id = id; return this; }
-        public ExpenseBuilder setDescription(String description) { this.description = description; return this; }
-        public ExpenseBuilder setAmount(double amount) { this.amount = amount; return this; }
-        public ExpenseBuilder setPaidBy(User paidBy) { this.paidBy = paidBy; return this; }
-        public ExpenseBuilder setParticipants(List<User> participants) { this.participants = participants; return this; }
-        public ExpenseBuilder setSplitStrategy(SplitStrategy splitStrategy) { this.splitStrategy = splitStrategy; return this; }
-        public ExpenseBuilder setSplitValues(List<Double> splitValues) { this.splitValues = splitValues; return this; }
-
-        public Expense build() {
-            // Validations
-            if (splitStrategy == null) {
-                throw new IllegalStateException("Split strategy is required.");
-            }
-            return new Expense(this);
+        if (Math.abs(totalSplit - amount) > 0.01) {
+            throw new IllegalArgumentException("Split amounts must equal the expense amount.");
         }
     }
-}
 
+    public String getId() {
+        return id;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public double getAmount() {
+        return amount;
+    }
+
+    public User getPaidBy() {
+        return paidBy;
+    }
+
+    public List<Split> getSplits() {
+        return splits;
+    }
+
+    public LocalDateTime getTimestamp() {
+        return timestamp;
+    }
+}
