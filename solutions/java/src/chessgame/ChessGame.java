@@ -29,7 +29,7 @@ public class ChessGame {
             // Make the move on the board
             try {
                 board.makeMove(move);
-            } catch (InvalidMoveException e) {
+            } catch (Exception e) {
                 System.out.println(e.getMessage());
                 System.out.println("Try again!");
                 continue;

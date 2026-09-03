@@ -1,93 +1,90 @@
-# Snake and Ladder Game - Low Level Design (LLD)
+# Snake and Ladder — Low-Level Design Interview Guide
 
-This document explains the Low-Level Design of a Snake and Ladder game, structured exactly how you should present it in a Microsoft SDE-2 interview — starting from requirements, moving to design, and ending with implementation details and follow-up talking points.
+This guide explains the implementation in this package, especially [SnakeAndLadderDemo.java](SnakeAndLadderDemo.java) and `Game.java`. It is written as a simple, interview-style narrative you can use in an SDE-2 low-level design round.
 
----
+## 1. Problem statement
 
-## 1. Requirements & Problem Statement
+Design a configurable, turn-based Snake and Ladder game.
 
-**Interviewer:** *"Design a Snake and Ladder game."*
+The game should:
 
-**Candidate (You):** *"Before I design this, let me lock down the scope with a few questions."*
+- Support two or more players.
+- Support a configurable board size; the demo uses squares `1` through `100`.
+- Accept configurable snakes and ladders when the board is created.
+- Use a configurable dice range; the demo uses one six-sided dice, `1` to `6`.
+- Move players in round-robin order.
+- Require **exact landing** on the last square. A move beyond the board is skipped.
+- Move a player immediately on landing at the start of a snake or ladder.
+- Give an extra turn when the dice result is `6`.
+- Print game events and the winner to the console.
 
-* **Board size:** Is it the standard 10x10 (1 to 100) board, or should the size be configurable? *(Let's keep it configurable.)*
-* **Number of players:** Single dice, multiple players, turn-based? *(Yes, 2 or more players, turns rotate.)*
-* **Snakes and Ladders:** Are their positions fixed/hardcoded, or should they be configurable at game setup? *(Configurable — pass in a list at setup time.)*
-* **Dice:** A single, standard 6-sided die? Should the range be configurable (in case we want a biased/testable die later)? *(Yes, keep the range configurable.)*
-* **Winning condition:** Does a player need to land **exactly** on the last cell, or is overshooting allowed? *(Exact landing required — this is the real board-game rule and it's a great detail to call out proactively.)*
-* **Extra turn rule:** Does rolling a 6 give the player another roll? *(Yes.)*
-* **Concurrency:** Is this a single console/local game, or multiplayer over network? *(Single process, turn-based, no concurrency concerns — keeps the design simple. I'll mention how I'd extend it later.)*
+`SnakeAndLadderDemo` is the composition root: it creates the entities, board, players, dice, and starts the game.
 
-**Summary of Scope:** A configurable-size board game supporting N players (N ≥ 2), a configurable dice, configurable snake/ladder placements, standard "exact landing to win" and "roll a 6 for an extra turn" rules.
+```java
+Board board = new Board(100, boardEntities);
+Dice dice = new Dice(1, 6);
+Game game = new Game(board, List.of("Alice", "Bob", "Charlie"), dice);
+game.play();
+```
 
----
+## 2. How to begin the interview
 
-## 2. Core Entities and Architecture
+Do not jump straight into classes. First clarify the rules. You can say:
 
-I'll break the problem into small, single-purpose classes rather than one giant `Game` God-class:
+> “I will assume a local, turn-based game with at least two players. The board size, dice range, snake positions, and ladder positions are configurable. A player must land exactly on the last square, rolling a six gives an immediate extra turn, and this version needs one winner. I will keep the design extensible for future rules.”
 
-1. **`Game`** — The orchestrator/controller. Owns the game loop, decides turn order, and applies game rules (win check, overshoot check, extra-turn-on-6).
-2. **`Board`** — Owns the board size and the snake/ladder mapping. Given any square, it can tell you where you actually end up.
-3. **`BoardEntity`** *(abstract)* — A generic concept of "something that teleports you from square A to square B." Both snakes and ladders are really the same mechanic, just in opposite directions.
-4. **`Snake`** / **`Ladder`** — Concrete `BoardEntity` subtypes that only differ in *validation rules* (a snake's head must be higher than its tail; a ladder's bottom must be lower than its top).
-5. **`Player`** — A simple data holder: name + current position on the board.
-6. **`Dice`** — Knows how to produce a random roll within a configurable range.
-7. **`GameStatus`** *(enum)* — Represents the lifecycle of the game: `NOT_STARTED`, `RUNNING`, `FINISHED`.
+Useful questions if the interviewer has not specified them:
 
-This mirrors how you'd describe it out loud: *"The Game asks the Dice for a roll, moves the Player, and asks the Board where that move actually lands — because the Board silently applies any Snake/Ladder that happens to be there."*
+1. Must a player land exactly on the last square? This implementation says yes.
+2. Does rolling a six give an extra turn? This implementation says yes.
+3. Is there a limit on consecutive sixes? This implementation has no limit.
+4. Can a snake or ladder end on another jump start? This implementation performs one jump only.
+5. Is this a console game or an online game? This implementation is a single-process console game.
 
----
+## 3. Core design
 
-## 3. Design Principles and Patterns Used
+| Class | Responsibility | Important state / operation |
+| --- | --- | --- |
+| `Game` | Runs turns and applies game rules | player index, winner, `play()`, `takeTurn()` |
+| `Board` | Holds board size and resolves jumps | immutable start-to-end map |
+| `BoardEntity` | Common abstraction for any board jump | `start`, `end` |
+| `Snake` | A downward board jump | validates `start > end` |
+| `Ladder` | An upward board jump | validates `start < end` |
+| `Player` | Player identity and current square | name, position |
+| `Dice` | Produces a random configured value | `roll()` |
+| `SnakeAndLadderDemo` | Wires the objects together | `main()` |
 
-Calling out *why* you made each choice is what separates an SDE-2 answer from an SDE-1 answer.
+The central collaboration is:
 
-* **Builder Design Pattern** — `Game` is constructed via `Game.Builder` (`setBoard()`, `setPlayers()`, `setDice()`, `build()`). A `Game` has several optional-looking configuration pieces (board layout, player list, dice), so a telescoping constructor would get messy fast. The Builder gives a readable, fluent setup and lets me **validate everything in one place** (`build()` throws `IllegalStateException` if board/players/dice aren't set) instead of scattering null-checks across constructors.
-* **Abstraction via `BoardEntity`** — `Snake` and `Ladder` are conceptually "opposite" but mechanically identical: both just map a `start` square to an `end` square. I model that shared mechanic once in an abstract `BoardEntity`, and let the subclasses only own what's actually different — their validation rule.
-* **Open/Closed Principle (SOLID)** — `Board` doesn't know or care whether a `BoardEntity` is a `Snake`, a `Ladder`, or something else entirely. It just reads `getStart()`/`getEnd()` and builds a `Map<Integer, Integer>`. If tomorrow the game adds a "Portal" or "Wormhole" entity, I add a new `BoardEntity` subclass with its own validation — **zero changes** to `Board` or `Game`.
-* **Liskov Substitution Principle (SOLID)** — Anywhere a `BoardEntity` is expected (the `List<BoardEntity>` passed into `Board`), a `Snake` or a `Ladder` can be passed in interchangeably without breaking behavior.
-* **Single Responsibility Principle (SOLID)** — `Dice` only knows how to roll. `Player` only tracks identity and position. `Board` only knows layout and square-resolution. `Game` is the only class that knows *rules* (turn order, win condition, extra turn). Nobody's job overlaps.
-* **Encapsulation** — Every field is `private`. `Player.position` can only be mutated through `setPosition()`, and `Board`'s internal `Map` is never exposed directly — callers only get a resolved answer via `getFinalPosition()`.
-* **Fail-Fast Validation** — `Snake`'s and `Ladder`'s constructors validate their own invariant immediately (`start <= end` throws for a Snake, `start >= end` throws for a Ladder). This stops a misconfigured board from being built at all, rather than producing weird bugs mid-game.
-* **Enum-based State Management** — `GameStatus` (`NOT_STARTED → RUNNING → FINISHED`) replaces what could have been a fragile `boolean isRunning` / `boolean isOver` pair. It's explicit, and the compiler won't let you represent an invalid combination.
-* **Composition over Inheritance** — `Game` *has-a* `Board`, *has-a* `Dice`, *has-a* queue of `Player`s. None of these relationships are modeled as inheritance, because a Game isn't a kind of Board or Dice — it just uses them.
-* **Efficient lookups (`Map` over List scan)** — `Board` stores `Map<Integer, Integer> snakesAndLadders` keyed by the *start* square. Resolving a landing square is an **O(1)** `getOrDefault()` lookup instead of looping through a list of entities on every single move.
+> “`Game` asks `Dice` for a roll, calculates a tentative square, asks `Board` to resolve a possible jump, updates `Player`, then decides whether the game ends or the player receives another turn.”
 
----
-
-## 4. Visualizing the Architecture
-
-### Class Diagram
+## 4. Class diagram
 
 ```mermaid
 classDiagram
+    class SnakeAndLadderDemo {
+        +main(String[] args) void
+    }
     class Game {
         -Board board
-        -Queue~Player~ players
+        -List~Player~ players
         -Dice dice
-        -GameStatus status
+        -int currentPlayerIndex
+        -boolean gameOver
         -Player winner
-        +play()
-        -takeTurn(Player)
+        +Game(Board, List~String~, Dice)
+        +play() void
+        -takeTurn(Player) boolean
+        +getWinner() Player
+        +getCurrentPlayer() Player
     }
-
-    class Game.Builder {
-        -Board board
-        -Queue~Player~ players
-        -Dice dice
-        +setBoard(int, List~BoardEntity~)
-        +setPlayers(List~String~)
-        +setDice(Dice)
-        +build() Game
-    }
-
     class Board {
         -int size
         -Map~Integer,Integer~ snakesAndLadders
+        +Board(int, List~BoardEntity~)
         +getSize() int
         +getFinalPosition(int) int
     }
-
     class BoardEntity {
         <<abstract>>
         -int start
@@ -95,162 +92,204 @@ classDiagram
         +getStart() int
         +getEnd() int
     }
-
-    class Snake {
-        +Snake(int start, int end)
-    }
-
-    class Ladder {
-        +Ladder(int start, int end)
-    }
-
+    class Snake
+    class Ladder
     class Player {
         -String name
         -int position
-        +getName() String
         +getPosition() int
-        +setPosition(int)
+        +setPosition(int) void
     }
-
     class Dice {
         -int minValue
         -int maxValue
         +roll() int
     }
-
-    class GameStatus {
-        <<enumeration>>
-        NOT_STARTED
-        RUNNING
-        FINISHED
-    }
-
-    Game.Builder ..> Game : builds
-    Game *-- Board : has-a
-    Game *-- Dice : has-a
-    Game o-- Player : queue of
-    Game --> GameStatus : tracks
-    Board ..> BoardEntity : consumes at construction
+    SnakeAndLadderDemo ..> Game : creates and starts
+    Game *-- Board
+    Game *-- Dice
+    Game o-- "2..*" Player
+    Board ..> "0..*" BoardEntity : receives at setup
     BoardEntity <|-- Snake
     BoardEntity <|-- Ladder
 ```
 
----
+## 5. Object creation and validation
 
-## 5. System Workflows (Flow Charts)
+### Board entities
 
-### Workflow 1: The Main Game Loop
+`BoardEntity` stores the shared `start` and `end` fields. Both subclasses use this common shape but enforce their own invariant:
+
+```java
+new Snake(17, 7);   // valid: head is above tail
+new Ladder(3, 38);  // valid: bottom is below top
+```
+
+A snake with `start <= end`, or a ladder with `start >= end`, throws `IllegalArgumentException` during construction. This is fail-fast validation: invalid game setup is rejected before play begins.
+
+### Board
+
+`Board` validates that its size is at least two. It converts the input entities into an immutable `Map<Integer, Integer>`:
+
+```text
+start square -> end square
+17 -> 7       (snake)
+3  -> 38      (ladder)
+```
+
+It rejects a null entity, positions outside the board, and two entities with the same start square. `Map.copyOf(jumps)` prevents the mapping from changing after board creation.
+
+`getFinalPosition(position)` uses `getOrDefault`; a normal landing returns the same position, while a jump start returns its destination. Either lookup is average **O(1)**.
+
+### Dice and players
+
+`Dice` rejects an inverted range and uses `ThreadLocalRandom` to return an inclusive value between its configured bounds. The demo creates `new Dice(1, 6)`.
+
+`Game` rejects a null board/dice, fewer than two players, and blank player names. It converts the supplied names into new `Player` objects, each beginning at position `0`, immediately before the first board square.
+
+## 6. Game flow
+
+### Main loop: round-robin scheduling
+
+`Game` keeps players in a `List<Player>` and records whose turn it is using `currentPlayerIndex`. This is a good fit because the player list is fixed during this game.
 
 ```mermaid
-graph TD
-    A[Client calls game.play] --> B{players.size less than 2?}
-    B -->|Yes| C[Print error and return]
-    B -->|No| D[status = RUNNING]
-    D --> E[Dequeue Player from front of Queue]
-    E --> F[takeTurn currentPlayer]
-    F --> G{status still RUNNING?}
-    G -->|Yes| H[Re-enqueue player at back of Queue]
-    H --> E
-    G -->|No - FINISHED| I[Exit loop]
-    I --> J[Print Game Finished and winner name]
+flowchart TD
+    A[game.play] --> B[Print Game started]
+    B --> C{gameOver?}
+    C -->|No| D[Get players currentPlayerIndex]
+    D --> E[extraTurn = takeTurn player]
+    E --> F{Game ended?}
+    F -->|Yes| G[Print Game Finished and winner]
+    F -->|No| H{extraTurn?}
+    H -->|Yes| C
+    H -->|No| I[Advance index modulo player count]
+    I --> C
 ```
 
-**Why a `Queue<Player>` for turn order?** Round-robin turn scheduling is exactly what a queue gives you for free: poll the front, process it, push it to the back. No manual index/modulo arithmetic needed, and it naturally supports players joining/leaving in future extensions.
+Modulo wraps the index after the last player, creating `Alice -> Bob -> Charlie -> Alice`. A six does not advance the index, so the same player acts immediately again.
 
-### Workflow 2: Resolving a Single Turn (`takeTurn`)
+### Single-turn flow
 
 ```mermaid
-graph TD
-    A[takeTurn player] --> B[roll = dice.roll]
-    B --> C[nextPosition = currentPosition + roll]
-    C --> D{nextPosition > boardSize?}
-    D -->|Yes: Overshoot| E[Print Turn Skipped, return]
-    D -->|No| F{nextPosition == boardSize?}
-    F -->|Yes: Exact Landing| G[Set position, mark winner, status = FINISHED, return]
-    F -->|No| H[finalPosition = board.getFinalPosition nextPosition]
-    H --> I{Compare finalPosition to nextPosition}
-    I -->|Greater: Ladder| J[Print climbed ladder]
-    I -->|Less: Snake| K[Print bitten by snake]
-    I -->|Equal: Plain move| L[Print normal move]
-    J --> M[player.setPosition finalPosition]
-    K --> M
-    L --> M
-    M --> N{roll == 6?}
-    N -->|Yes| O[Recursively call takeTurn player again]
-    N -->|No| P[Return - turn ends]
+flowchart TD
+    A[Start player's turn] --> B[roll = dice.roll]
+    B --> C[nextPosition = current position + roll]
+    C --> D{nextPosition > board size?}
+    D -->|Yes| E[Print exact-landing message]
+    E --> Z[Return false: next player]
+    D -->|No| F[finalPosition = board.getFinalPosition nextPosition]
+    F --> G{finalPosition > nextPosition?}
+    G -->|Yes| H[Print ladder event]
+    G -->|No| I{finalPosition < nextPosition?}
+    I -->|Yes| J[Print snake event]
+    I -->|No| K[Print normal move]
+    H --> L[Set player position to finalPosition]
+    J --> L
+    K --> L
+    L --> M{finalPosition equals board size?}
+    M -->|Yes| N[Set winner and gameOver]
+    N --> O[Return false]
+    M -->|No| P{roll equals 6?}
+    P -->|Yes| Q[Print extra-turn message]
+    Q --> R[Return true]
+    P -->|No| Z
 ```
 
-**Talking point:** notice the win check happens *before* the snake/ladder lookup, and the extra-turn-on-6 is handled by **recursion on the same player**, not by re-queueing them. That's a deliberate, explainable design choice — walk the interviewer through it rather than just reading the code.
+### Rule ordering matters
 
----
+Inside `takeTurn()`, rules occur in this order:
 
-## 6. Implementation Deep Dive (How it works under the hood)
+1. Roll the dice and calculate `nextPosition`.
+2. If it exceeds the board size, do not change the player position; end the turn.
+3. Resolve one snake or ladder using the board map.
+4. Update the player position.
+5. Check whether the **final** position is the last square; this correctly supports a ladder that ends on the final square.
+6. If the player did not win and rolled six, return `true` so the outer loop keeps the same player.
 
-**1. Storing Snakes and Ladders as a `Map<Integer, Integer>`**
-`Board`'s constructor loops over the `List<BoardEntity>` once and inserts `start → end` into a `HashMap`. After that, `getFinalPosition(position)` is a single `getOrDefault(position, position)` call — if the square has no snake/ladder, you just get the same square back. This is O(1) per move instead of scanning a list of entities every turn.
+## 7. Example walkthrough
 
-**2. Why `Snake` and `Ladder` are separate classes instead of one `BoardEntity(start, end, type)`**
-Using subclasses lets each type enforce its own invariant **in the constructor**, so an invalid board configuration fails immediately at setup time (fail-fast) instead of silently producing wrong gameplay:
-```java
-new Snake(17, 7);   // OK: head(17) > tail(7)
-new Snake(7, 17);   // throws IllegalArgumentException — that's a ladder shape!
-new Ladder(3, 38);  // OK: bottom(3) < top(38)
-```
+If Alice is at `15` and rolls `2`:
 
-**3. Turn resolution order matters**
-Inside `takeTurn`, the checks happen in this exact order, and the order is meaningful:
-1. **Overshoot check** (`nextPosition > boardSize`) — turn is skipped entirely, player doesn't move at all.
-2. **Exact-landing win check** (`nextPosition == boardSize`) — this must run *before* consulting the Board, because the winning square itself doesn't need a snake/ladder lookup.
-3. **Only then** does it call `board.getFinalPosition(nextPosition)` to see if a snake or ladder applies.
+1. Tentative position is `17`.
+2. The board map contains `17 -> 7`.
+3. `Board.getFinalPosition(17)` returns `7`.
+4. Alice is moved to `7`, and the game prints a snake event.
+5. Alice did not reach 100 and did not roll six, so the next player gets a turn.
 
-**4. Extra turn on rolling a 6 — recursion, not a loop or re-queue**
-```java
-if (roll == 6) {
-    takeTurn(player); // same player rolls again immediately
-}
-```
-This keeps the "same player keeps rolling until they don't get a 6 (or they win/overshoot)" rule very close to the actual game rule text, and it avoids re-inserting the player into the turn queue multiple times, which would corrupt turn order.
+If Bob is at `0` and rolls `3`, the board resolves `3 -> 38`; he ends on 38 that turn. If Charlie is at `98` and rolls `4`, position 102 overshoots, so Charlie remains on 98.
 
-**5. Builder validates before construction**
-```java
-public Game build() {
-    if (board == null || players == null || dice == null) {
-        throw new IllegalStateException("Board, Players, and Dice must be set.");
-    }
-    return new Game(this);
-}
-```
-This guarantees a `Game` object, once constructed, is **always** in a valid, ready-to-play state — no partially configured `Game` can ever leak out of the Builder.
+## 8. Design principles used
 
-**6. Minimum player check happens in `play()`, not in the Builder**
-`play()` checks `players.size() < 2` at runtime rather than in `Builder.build()`. This is a reasonable interview talking point either way — you could argue it belongs in `build()` for even-earlier fail-fast behavior, and mention that as a possible improvement.
+Connect every principle to a code choice instead of only naming it.
 
----
+### Single Responsibility Principle
 
-## 7. Edge Cases & "Gotchas" Worth Raising Proactively
+- `Dice` owns random-roll behavior.
+- `Player` owns player state.
+- `Board` owns layout and jump resolution.
+- `Game` owns turn, win, and extra-turn rules.
+- `Snake` and `Ladder` own their individual validity rules.
 
-Bringing these up **yourself** in an interview signals strong attention to detail:
+### Encapsulation and immutability
 
-* **Exact landing rule**: A roll that would take a player past the last square is a wasted turn — very easy to forget if you're coding this live under time pressure.
-* **Ladder ending exactly on the last square**: In the current implementation, the win check only compares the *raw* `nextPosition` to `boardSize`, **before** the snake/ladder map is consulted. If a ladder's top square happened to be exactly the last square, `board.getFinalPosition()` would correctly return the last square, but the code wouldn't re-check for a win after applying it — the player would sit on the winning square without being declared the winner. Calling this out shows the interviewer you can spot subtle order-of-operations bugs. (Fix: re-check `finalPosition == board.getSize()` after resolving the snake/ladder, or simply resolve the snake/ladder first and do a single win check at the end.)
-* **Unbounded 6-streak recursion**: Some official rule variants say "three 6s in a row voids your turn / sends you back to the start" to prevent a player from monopolizing turns indefinitely. This implementation doesn't cap it — worth mentioning as a rule you'd clarify with the interviewer.
-* **A snake's tail or a ladder's top landing on another entity's start square**: Not validated here — e.g., nothing stops a ladder from ending exactly where a snake begins. Real board games avoid this by design; a production version might validate no two entities chain into each other unexpectedly.
-* **Concurrent modification safety**: Since this is a single-threaded, turn-based game, there's no synchronization needed — but if asked to extend this to a server handling multiple simultaneous game rooms, each `Game` instance is independent and would need its own lock/actor if shared across threads.
+Fields are private. `Board` exposes lookup operations rather than its map, and the map is immutable after construction. Board-entity coordinates and dice bounds are final. `Player.position` is mutable because moving is a valid state transition.
 
----
+### Abstraction and polymorphism
 
-## 8. Interview Closing Remarks (Possible Extensions)
+`Board` accepts `List<BoardEntity>`, not separate snake and ladder lists. It only needs the common start/end contract, so either subclass can be used wherever a board entity is needed.
 
-If the interviewer asks "how would you extend this?", here are strong answers:
+### Open/Closed Principle — partly achieved
 
-1. **Strategy Pattern for the Dice** — Today `Dice` is a single concrete class. If we wanted multiple dice, a "cheat/loaded" die for testing, or a rule like "sum of two dice," I'd extract a `DiceRollStrategy` interface so `Game` doesn't care how the roll is produced.
-2. **Observer Pattern for Game Events** — Right now, all feedback is `System.out.println` calls baked directly into `Game`. In a real product (web/mobile UI, or multiplayer over network), I'd emit events (`PlayerMoved`, `PlayerWon`, `SnakeBite`, `LadderClimb`) to registered `GameObserver`s (UI renderer, logger, analytics, WebSocket broadcaster) instead of printing directly — this decouples game logic from presentation.
-3. **State Pattern for `GameStatus`** — For a more complex game (pause/resume, multiplayer lobby states), I'd promote `GameStatus` from an enum into a full State pattern (`NotStartedState`, `RunningState`, `FinishedState`) where each state governs which actions are legal.
-4. **Factory for `BoardEntity` from config** — If snakes/ladders were loaded from a JSON/DB config rather than hardcoded in `main()`, I'd add a `BoardEntityFactory` to parse and validate entries, keeping `Board`'s constructor unaware of the source format.
-5. **Distributed/Networked Version** — For an online multiplayer variant, I'd move `Game` state into a shared store (Redis) keyed by game-room ID, have each player action come in as a message (Kafka/WebSocket), and broadcast state changes to all connected clients — the core `Board`/`Player`/`Dice` domain model stays exactly the same, only the transport and persistence layers change.
+A new basic jump type such as `Portal` can extend `BoardEntity` and reuse board storage without changing `Board`. Be accurate: `Game` currently determines the console message by comparing start and end positions. A portal with special behaviour or messaging can require a small change there.
 
----
+### Composition over inheritance
 
-## 9. The 60-Second Verbal Pitch (say this out loud in the interview)
+`Game` has a board, dice, and players; it does not inherit from them. Inheritance is used only for a true “is a” relationship: a snake or ladder is a board entity.
 
-> "I modeled the game around four core ideas: a `Board` that only knows how to resolve a square (applying snakes or ladders via an O(1) map lookup), a `BoardEntity` abstraction so snakes and ladders share one mechanic but validate their own shape independently, a `Player` that's just a name and position, and a `Game` that owns the actual rules — turn order via a queue, the exact-landing win condition, and the roll-a-6-gets-another-turn rule via simple recursion. I used the Builder pattern to construct the `Game` because it has multiple required pieces — board, players, dice — and I wanted one place to validate that all of them are present before the game can start. Each class has exactly one reason to change, which is what makes it easy to extend later — for example, swapping in a weighted dice or adding an Observer for a UI layer wouldn't touch the core game logic at all."
+### Fail-fast validation
+
+Constructors reject invalid dice ranges, player input, board sizes, duplicate jump starts, and invalid snake/ladder directions. This makes a broken configuration fail at setup rather than in the middle of a game.
+
+### Thread-safety boundary
+
+`play()` is `synchronized`, so two threads cannot execute the complete game loop simultaneously on the same `Game` instance. This is sufficient for the console scope. It is not a full online multiplayer design; any concurrent external state access would need the same synchronization policy.
+
+## 9. Complexity
+
+Let `P` be player count and `E` be number of snakes and ladders.
+
+| Operation | Time | Space | Reason |
+| --- | --- | --- | --- |
+| Construct board | O(E) | O(E) | Validate and insert every entity once. |
+| Resolve landing square | O(1) average | O(1) extra | Hash-map lookup. |
+| Resolve one turn | O(1) average | O(1) extra | One roll, arithmetic, and lookup. |
+| Advance player | O(1) | O(1) | Index increment and modulo. |
+| Store players | O(P) | O(P) | One object per player. |
+
+The game’s total number of turns is unbounded because dice rolls are random; an individual turn remains constant time on average.
+
+## 10. Boundaries and sensible extensions
+
+- **Three consecutive sixes:** Add a per-turn six counter if that variant is required.
+- **Chained jumps:** The board currently resolves one jump. If chaining is allowed, loop with cycle detection or reject chain-producing configurations during board validation.
+- **Testable dice:** Extract a small `Roller` interface and inject a deterministic implementation for unit tests.
+- **UI or network output:** Replace direct console prints with game events and observers for a UI, logger, or WebSocket broadcaster.
+- **Dynamic players:** The index/list approach is ideal for fixed players. If players can join or leave, specify the desired turn-order semantics and use a queue or dedicated turn manager if clearer.
+- **Online game:** Persist state by room ID and serialize player actions; use a per-game lock or actor/event loop for ordered updates.
+
+## 11. A strong 60–90 second verbal answer
+
+> “I separated the design into a `Game` orchestrator, a `Board`, `Player`, and `Dice`. `Game` owns the turn order, exact-landing rule, extra turn on six, and winner. It keeps players in a list and uses a current index, so round-robin advancement is O(1) using modulo; when a player rolls six, the index is not advanced. `Board` owns only the board size and jump resolution. At construction, it converts snakes and ladders into an immutable start-to-end hash map, so resolving a landing square is O(1) on average. `Snake` and `Ladder` extend a common `BoardEntity` because both are board jumps, while each validates its own direction. Constructors validate invalid setup early. During a turn, I check overshoot first, resolve one possible jump, update the player, check for a win on the final square, then apply the extra-turn rule. This keeps responsibilities small and makes extensions such as deterministic dice testing or UI event listeners straightforward.”
+
+## 12. Live-coding order
+
+1. State assumptions and name the entities.
+2. Implement `Player`, `BoardEntity`, `Snake`, and `Ladder` with validation.
+3. Implement `Board` with a map and duplicate-start validation.
+4. Implement `Dice`.
+5. Implement `Game.takeTurn()` first, since it contains the important rules.
+6. Add the index-based game loop, getters, and the small demo.
+7. State complexity and one or two extensions.
+
+This order demonstrates solid modelling first, then rule orchestration, instead of beginning with console output.

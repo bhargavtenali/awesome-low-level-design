@@ -57,6 +57,10 @@ public class Player {
         state.stop(this);
     }
 
+    public synchronized void resetPosition() {
+        currentPositionInSeconds = 0;
+    }
+
     public synchronized boolean hasQueue() {
         return !queue.isEmpty();
     }

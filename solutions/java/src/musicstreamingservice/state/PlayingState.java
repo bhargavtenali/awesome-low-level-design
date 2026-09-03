@@ -17,6 +17,7 @@ public class PlayingState implements PlayerState {
     @Override
     public void stop(Player player) {
         System.out.println("Stopping playback.");
+        player.resetPosition();
         player.changeState(new StoppedState());
         player.setStatus(PlayerStatus.STOPPED);
     }

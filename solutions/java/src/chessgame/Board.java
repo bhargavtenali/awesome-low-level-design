@@ -47,14 +47,13 @@ public class Board {
         return board[row][col];
     }
 
-    public synchronized boolean makeMove(Move move) {
+    public synchronized void makeMove(Move move) {
         Cell start = move.getStart(), end = move.getEnd();
         Piece piece = start.getPiece();
-        if (piece == null || !piece.canMove(this, start, end)) return false;
+        if (piece == null || !piece.canMove(this, start, end)) throw new IllegalArgumentException("Invalid Move");
 
         end.setPiece(piece);
         start.setPiece(null);
-        return true;
     }
 
     public Piece getPiece(int row, int col) {

@@ -46,8 +46,7 @@ public class Elevator {
 
             for (Request req : requests) {
                 int distance = Math.abs(req.getFloor() - currentFloor);
-                if (distance < minDistance ||
-                        (distance == minDistance && (nearest == null || req.getFloor() < nearest.getFloor()))) {
+                if (distance < minDistance) {
                     minDistance = distance;
                     nearest = req;
                 }

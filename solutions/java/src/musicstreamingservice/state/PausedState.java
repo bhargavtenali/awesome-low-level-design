@@ -17,6 +17,7 @@ public class PausedState implements PlayerState {
     @Override
     public void stop(Player player) {
         System.out.println("Stopping playback from paused state.");
+        player.resetPosition();
         player.changeState(new StoppedState());
         player.setStatus(PlayerStatus.STOPPED);
     }
