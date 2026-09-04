@@ -20,7 +20,6 @@ public class AuthenticatedState implements ATMState {
             case CHECK_BALANCE:
                 atmSystem.checkBalance();
                 break;
-
             case WITHDRAW_CASH:
                 if (args.length == 0 || args[0] <= 0) {
                     throw new IllegalArgumentException("Withdrawal amount must be positive.");
@@ -28,7 +27,6 @@ public class AuthenticatedState implements ATMState {
                 System.out.println("Processing withdrawal for $" + args[0]);
                 atmSystem.withdrawCash(args[0]);
                 break;
-
             case DEPOSIT_CASH:
                 if (args.length == 0 || args[0] <= 0) {
                     throw new IllegalArgumentException("Deposit amount must be positive.");
@@ -36,7 +34,6 @@ public class AuthenticatedState implements ATMState {
                 System.out.println("Processing deposit for $" + args[0]);
                 atmSystem.depositCash(args[0]);
                 break;
-
             default:
                 throw new IllegalArgumentException("Invalid operation.");
         }
