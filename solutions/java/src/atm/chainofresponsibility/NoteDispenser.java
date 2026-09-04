@@ -1,11 +1,14 @@
 package atm.chainofresponsibility;
 
-abstract class NoteDispenser implements DispenseChain {
-    private DispenseChain nextChain;
+public class NoteDispenser implements DispenseChain {
     private final int noteValue;
     private int numNotes;
+    private DispenseChain nextChain;
 
     public NoteDispenser(int noteValue, int numNotes) {
+        if (noteValue <= 0 || numNotes < 0) {
+            throw new IllegalArgumentException("Invalid note configuration.");
+        }
         this.noteValue = noteValue;
         this.numNotes = numNotes;
     }
@@ -16,36 +19,42 @@ abstract class NoteDispenser implements DispenseChain {
     }
 
     @Override
-    public synchronized void dispense(int amount) {
-        if (amount >= noteValue) {
-            int numToDispense = Math.min(amount / noteValue, this.numNotes);
-            int remainingAmount = amount - (numToDispense * noteValue);
-
-            if (numToDispense > 0) {
-                System.out.println("Dispensing " + numToDispense + " x $" + noteValue + " note(s)");
-                this.numNotes -= numToDispense;
-            }
-
-            if (remainingAmount > 0 && this.nextChain != null) {
-                this.nextChain.dispense(remainingAmount);
-            }
-        } else if (this.nextChain != null) {
-            this.nextChain.dispense(amount);
+    public synchronized boolean canDispense(int amount) {
+        if (amount < 0) {
+            return false;
         }
+        if (amount == 0) {
+            return true;
+        }
+        int maxNotes = Math.min(amount / noteValue, numNotes);
+        for (int count = maxNotes; count >= 0; count--) {
+            int remaining = amount - count * noteValue;
+            if (remaining == 0) {
+                return true;
+            }
+            if (nextChain != null && nextChain.canDispense(remaining)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override
-    public synchronized boolean canDispense(int amount) {
-        if (amount < 0) return false;
-        if (amount == 0) return true;
-
-        int numToUse = Math.min(amount / noteValue, this.numNotes);
-        int remainingAmount = amount - (numToUse * noteValue);
-
-        if (remainingAmount == 0) return true;
-        if (this.nextChain != null) {
-            return this.nextChain.canDispense(remainingAmount);
+    public synchronized void dispense(int amount) {
+        int maxNotes = Math.min(amount / noteValue, numNotes);
+        for (int count = maxNotes; count >= 0; count--) {
+            int remaining = amount - count * noteValue;
+            if (remaining == 0 || (nextChain != null && nextChain.canDispense(remaining))) {
+                if (count > 0) {
+                    numNotes -= count;
+                    System.out.println("Dispensing " + count + " x $" + noteValue + " note(s)");
+                }
+                if (remaining > 0) {
+                    nextChain.dispense(remaining);
+                }
+                return;
+            }
         }
-        return false;
+        throw new IllegalStateException("Cannot dispense exact amount: " + amount);
     }
 }

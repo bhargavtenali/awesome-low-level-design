@@ -1,17 +1,9 @@
 package splitwise;
 
-import splitwise.entities.Expense;
-import splitwise.entities.Group;
-import splitwise.entities.Split;
-import splitwise.entities.Transaction;
-import splitwise.entities.User;
+import splitwise.entities.*;
 import splitwise.strategy.SplitStrategy;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
@@ -55,11 +47,9 @@ public class SplitwiseService {
 
     public Group getGroup(String id) {
         Group group = groups.get(id);
-
         if (group == null) {
             throw new IllegalArgumentException("Group not found: " + id);
         }
-
         return group;
     }
 

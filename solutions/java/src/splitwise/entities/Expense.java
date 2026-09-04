@@ -38,8 +38,7 @@ public class Expense {
         this.paidBy = paidBy;
         this.timestamp = LocalDateTime.now();
 
-        List<Double> values = splitValues == null ? List.of() : splitValues;
-        this.splits = List.copyOf(splitStrategy.calculateSplits(amount, paidBy, participants, values));
+        this.splits = splitStrategy.calculateSplits(amount, paidBy, participants, splitValues);
 
         double totalSplit = this.splits.stream().mapToDouble(Split::getAmount).sum();
 

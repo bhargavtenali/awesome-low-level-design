@@ -1,17 +1,13 @@
 package atm;
 
 import atm.chainofresponsibility.DispenseChain;
-import atm.chainofresponsibility.NoteDispenser100;
-import atm.chainofresponsibility.NoteDispenser20;
-import atm.chainofresponsibility.NoteDispenser50;
+import atm.chainofresponsibility.NoteDispenser;
 import atm.entities.BankService;
 import atm.entities.Card;
 import atm.entities.CashDispenser;
 import atm.enums.OperationType;
 import atm.state.ATMState;
 import atm.state.IdleState;
-
-import java.util.concurrent.atomic.AtomicLong;
 
 public class ATMSystem {
     private static final ATMSystem INSTANCE = new ATMSystem();
@@ -23,62 +19,76 @@ public class ATMSystem {
     private ATMSystem() {
         this.currentState = new IdleState();
         this.bankService = new BankService();
-
-        // Set up the dispenser chain
-        DispenseChain c1 = new NoteDispenser100(10); // 10 x $100 notes
-        DispenseChain c2 = new NoteDispenser50(20); // 20 x $50 notes
-        DispenseChain c3 = new NoteDispenser20(30); // 30 x $20 notes
-        c1.setNextChain(c2);
-        c2.setNextChain(c3);
-        this.cashDispenser = new CashDispenser(c1);
+        DispenseChain c100 = new NoteDispenser(100, 10);
+        DispenseChain c50 = new NoteDispenser(50, 20);
+        DispenseChain c20 = new NoteDispenser(20, 30);
+        c100.setNextChain(c50);
+        c50.setNextChain(c20);
+        this.cashDispenser = new CashDispenser(c100);
     }
 
     public static ATMSystem getInstance() {
         return INSTANCE;
     }
 
-    public void changeState(ATMState newState) { this.currentState = newState; }
-    public void setCurrentCard(Card card) { this.currentCard = card; }
+    public synchronized void changeState(ATMState newState) {
+        this.currentState = newState;
+    }
 
-    public void insertCard(String cardNumber) {
+    public synchronized void setCurrentCard(Card card) {
+        this.currentCard = card;
+    }
+
+    public synchronized void insertCard(String cardNumber) {
         currentState.insertCard(this, cardNumber);
     }
 
-    public void enterPin(String pin) {
+    public synchronized void enterPin(String pin) {
         currentState.enterPin(this, pin);
     }
 
-    public void selectOperation(OperationType op, int... args) { currentState.selectOperation(this, op, args); }
+    public synchronized void selectOperation(OperationType operation, int... args) {
+        currentState.selectOperation(this, operation, args);
+    }
 
     public Card getCard(String cardNumber) {
         return bankService.getCard(cardNumber);
     }
 
     public boolean authenticate(String pin) {
-        return bankService.authenticate(currentCard, pin);
+        return currentCard != null && bankService.authenticate(currentCard, pin);
     }
 
-    public void checkBalance() {
+    public synchronized void checkBalance() {
         double balance = bankService.getBalance(currentCard);
         System.out.printf("Your current account balance is: $%.2f%n", balance);
     }
 
     public synchronized void withdrawCash(int amount) {
-        if (!cashDispenser.canDispenseCash(amount)) {
-            throw new IllegalStateException("Insufficient cash available in the ATM.");
+        if (amount <= 0) {
+            throw new IllegalArgumentException("Withdrawal amount must be positive.");
         }
-
-        bankService.withdrawMoney(currentCard, amount);
-
+        if (!cashDispenser.canDispenseCash(amount)) {
+            throw new IllegalStateException("ATM cannot dispense the requested amount.");
+        }
+        if (!bankService.withdrawMoney(currentCard, amount)) {
+            throw new IllegalStateException("Insufficient account balance.");
+        }
         try {
             cashDispenser.dispenseCash(amount);
-        } catch (Exception e) {
-            bankService.depositMoney(currentCard, amount); // Deposit back if dispensing fails
+        } catch (RuntimeException e) {
+            bankService.depositMoney(currentCard, amount);
+            throw new IllegalStateException("Unable to dispense cash. Transaction rolled back.", e);
         }
+        System.out.println("Please collect your cash: $" + amount);
     }
 
-    public void depositCash(int amount) {
+    public synchronized void depositCash(int amount) {
+        if (amount <= 0) {
+            throw new IllegalArgumentException("Deposit amount must be positive.");
+        }
         bankService.depositMoney(currentCard, amount);
+        System.out.println("Cash deposited successfully: $" + amount);
     }
 
     public Card getCurrentCard() {

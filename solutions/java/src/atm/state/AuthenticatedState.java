@@ -15,55 +15,38 @@ public class AuthenticatedState implements ATMState {
     }
 
     @Override
-    public void selectOperation(ATMSystem atmSystem, OperationType op, int... args) {
-        // In a real UI, this would be a menu. Here we use a switch.
-        switch (op) {
+    public void selectOperation(ATMSystem atmSystem, OperationType operation, int... args) {
+        switch (operation) {
             case CHECK_BALANCE:
                 atmSystem.checkBalance();
                 break;
 
             case WITHDRAW_CASH:
                 if (args.length == 0 || args[0] <= 0) {
-                    System.out.println("Error: Invalid withdrawal amount specified.");
-                    break;
+                    throw new IllegalArgumentException("Withdrawal amount must be positive.");
                 }
-                int amountToWithdraw = args[0];
-
-                double accountBalance = atmSystem.getBankService().getBalance(atmSystem.getCurrentCard());
-
-                if (amountToWithdraw > accountBalance) {
-                    System.out.println("Error: Insufficient balance.");
-                    break;
-                }
-
-                System.out.println("Processing withdrawal for $" + amountToWithdraw);
-                // Delegate the complex withdrawal logic to the ATM's dedicated method
-                atmSystem.withdrawCash(amountToWithdraw);
+                System.out.println("Processing withdrawal for $" + args[0]);
+                atmSystem.withdrawCash(args[0]);
                 break;
 
             case DEPOSIT_CASH:
                 if (args.length == 0 || args[0] <= 0) {
-                    System.out.println("Error: Invalid withdrawal amount specified.");
-                    break;
+                    throw new IllegalArgumentException("Deposit amount must be positive.");
                 }
-                int amountToDeposit = args[0];
-                System.out.println("Processing deposit for $" + amountToDeposit);
-                atmSystem.depositCash(amountToDeposit);
+                System.out.println("Processing deposit for $" + args[0]);
+                atmSystem.depositCash(args[0]);
                 break;
 
             default:
-                System.out.println("Error: Invalid operation selected.");
-                break;
+                throw new IllegalArgumentException("Invalid operation.");
         }
-
-        // End the session after one transaction
         System.out.println("Transaction complete.");
         ejectCard(atmSystem);
     }
 
     @Override
     public void ejectCard(ATMSystem atmSystem) {
-        System.out.println("Ending session. Card has been ejected. Thank you for using our ATM.");
+        System.out.println("Card has been ejected. Thank you for using our ATM.");
         atmSystem.setCurrentCard(null);
         atmSystem.changeState(new IdleState());
     }

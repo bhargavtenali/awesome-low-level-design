@@ -8,9 +8,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class TransactionService {
-
     private static final TransactionService INSTANCE = new TransactionService();
-
     private final Map<String, Loan> activeLoans = new ConcurrentHashMap<>();
 
     private TransactionService() {
@@ -25,21 +23,15 @@ public class TransactionService {
             if (!copy.isAvailable()) {
                 throw new IllegalStateException("Book copy is not available: " + copy.getId());
             }
-
             Loan loan = new Loan(copy, member);
-
             Loan existing = activeLoans.putIfAbsent(copy.getId(), loan);
-
             if (existing != null) {
                 throw new IllegalStateException("Book copy is already on loan: " + copy.getId());
             }
-
             if (!copy.tryCheckout()) {
                 activeLoans.remove(copy.getId(), loan);
-
                 throw new IllegalStateException("Book copy is not available: " + copy.getId());
             }
-
             member.addLoan(loan);
         }
     }
@@ -64,7 +56,6 @@ public class TransactionService {
                 activeLoans.putIfAbsent(copy.getId(), loan);
                 throw new IllegalStateException("Book copy is not checked out.");
             }
-
             loan.markReturned();
             member.removeLoan(loan);
         }

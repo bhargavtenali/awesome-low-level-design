@@ -4,17 +4,16 @@ import atm.ATMSystem;
 import atm.enums.OperationType;
 
 public class HasCardState implements ATMState {
+
     @Override
     public void insertCard(ATMSystem atmSystem, String cardNumber) {
-        System.out.println("Error: A card is already inserted. Cannot insert another card.");
+        System.out.println("Error: A card is already inserted.");
     }
 
     @Override
     public void enterPin(ATMSystem atmSystem, String pin) {
         System.out.println("Authenticating PIN...");
-        boolean isAuthenticated = atmSystem.authenticate(pin);
-
-        if (isAuthenticated) {
+        if (atmSystem.authenticate(pin)) {
             System.out.println("Authentication successful.");
             atmSystem.changeState(new AuthenticatedState());
         } else {
@@ -24,8 +23,8 @@ public class HasCardState implements ATMState {
     }
 
     @Override
-    public void selectOperation(ATMSystem atmSystem, OperationType op, int... args) {
-        System.out.println("Error: Please enter your PIN first to select an operation.");
+    public void selectOperation(ATMSystem atmSystem, OperationType operation, int... args) {
+        System.out.println("Error: Please enter your PIN first.");
     }
 
     @Override

@@ -34,20 +34,15 @@ public class LibraryManagementSystem {
         if (numCopies <= 0) {
             throw new IllegalArgumentException("Number of copies must be greater than zero.");
         }
-
         Book book = new Book(id, title, author, isbn);
         catalog.addBook(book);
-
         List<BookCopy> bookCopies = new ArrayList<>();
-
         for (int i = 1; i <= numCopies; i++) {
             String copyId = id + "-c" + i;
             BookCopy copy = new BookCopy(copyId, book);
-
             copies.put(copyId, copy);
             bookCopies.add(copy);
         }
-
         return List.copyOf(bookCopies);
     }
 
@@ -77,41 +72,33 @@ public class LibraryManagementSystem {
     public Member addMember(String id, String name) {
         Member member = new Member(id, name);
         Member existing = members.putIfAbsent(id, member);
-
         if (existing != null) {
             throw new IllegalArgumentException("Member already exists: " + id);
         }
-
         return member;
     }
 
     public void checkout(String memberId, String copyId) {
         Member member = members.get(memberId);
         BookCopy copy = copies.get(copyId);
-
         if (member == null) {
             throw new IllegalArgumentException("Member not found: " + memberId);
         }
-
         if (copy == null) {
             throw new IllegalArgumentException("Book copy not found: " + copyId);
         }
-
         transactionService.checkout(copy, member);
     }
 
     public void returnBook(String memberId, String copyId) {
         Member member = members.get(memberId);
         BookCopy copy = copies.get(copyId);
-
         if (member == null) {
             throw new IllegalArgumentException("Member not found: " + memberId);
         }
-
         if (copy == null) {
             throw new IllegalArgumentException("Book copy not found: " + copyId);
         }
-
         transactionService.returnBook(copy, member);
     }
 

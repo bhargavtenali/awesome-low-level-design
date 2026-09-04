@@ -23,7 +23,6 @@ public class BookCopy {
         if (status != BookCopyStatus.AVAILABLE) {
             return false;
         }
-
         status = BookCopyStatus.CHECKED_OUT;
         return true;
     }
@@ -32,7 +31,6 @@ public class BookCopy {
         if (status != BookCopyStatus.CHECKED_OUT) {
             return false;
         }
-
         status = BookCopyStatus.AVAILABLE;
         return true;
     }

@@ -13,7 +13,6 @@ public class Catalog {
 
     public void addBook(Book book) {
         Book existing = books.putIfAbsent(book.getId(), book);
-
         if (existing != null) {
             throw new IllegalArgumentException("Book already exists: " + book.getId());
         }

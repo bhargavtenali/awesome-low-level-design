@@ -1,44 +1,43 @@
 package atm.entities;
 
-import java.util.HashMap;
-import java.util.Map;
-
 public class Account {
     private final String accountNumber;
     private double balance;
-    private Map<String, Card> cards;
 
     public Account(String accountNumber, double balance) {
+        if (accountNumber == null || accountNumber.isBlank()) {
+            throw new IllegalArgumentException("Account number is required.");
+        }
+        if (balance < 0) {
+            throw new IllegalArgumentException("Initial balance cannot be negative.");
+        }
         this.accountNumber = accountNumber;
         this.balance = balance;
-        this.cards = new HashMap<>();
     }
 
     public String getAccountNumber() {
         return accountNumber;
     }
 
-    public double getBalance() {
+    public synchronized double getBalance() {
         return balance;
     }
 
-    public Map<String, Card> getCards() {
-        return cards;
-    }
-
-    public void addCard(Card card){
-        cards.put(card.getCardNumber(), card);
-    }
-
     public synchronized void deposit(double amount) {
+        if (amount <= 0) {
+            throw new IllegalArgumentException("Deposit amount must be positive.");
+        }
         balance += amount;
     }
 
     public synchronized boolean withdraw(double amount) {
-        if (balance >= amount) {
-            balance -= amount;
-            return true;
+        if (amount <= 0) {
+            throw new IllegalArgumentException("Withdrawal amount must be positive.");
         }
-        return false;
+        if (balance < amount) {
+            return false;
+        }
+        balance -= amount;
+        return true;
     }
 }
