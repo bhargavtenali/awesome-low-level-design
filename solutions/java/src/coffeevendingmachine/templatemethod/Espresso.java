@@ -6,12 +6,14 @@ import coffeevendingmachine.enums.Ingredient;
 import java.util.Map;
 
 public class Espresso extends Coffee {
+
     public Espresso() {
         super("Espresso");
     }
 
     @Override
-    protected void addCondiments() { /* No extra condiments for espresso */ }
+    protected void addCondiments() {
+    }
 
     @Override
     public int getPrice() {
@@ -20,6 +22,8 @@ public class Espresso extends Coffee {
 
     @Override
     public Map<Ingredient, Integer> getRecipe() {
-        return Map.of(Ingredient.COFFEE_BEANS, 7, Ingredient.WATER, 30);
+        return Map.of(
+                Ingredient.COFFEE_BEANS, 7,
+                Ingredient.WATER, 30);
     }
 }

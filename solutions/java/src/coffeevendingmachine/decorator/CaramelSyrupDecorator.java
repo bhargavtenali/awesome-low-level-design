@@ -6,7 +6,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class CaramelSyrupDecorator extends Coffee {
-
+    private static final int COST = 20;
     private final Coffee coffee;
 
     public CaramelSyrupDecorator(Coffee coffee) {
@@ -16,16 +16,13 @@ public class CaramelSyrupDecorator extends Coffee {
 
     @Override
     public int getPrice() {
-        return coffee.getPrice() + 20;
+        return coffee.getPrice() + COST;
     }
 
     @Override
     public Map<Ingredient, Integer> getRecipe() {
-        Map<Ingredient, Integer> recipe =
-                new HashMap<>(coffee.getRecipe());
-
+        Map<Ingredient, Integer> recipe = new HashMap<>(coffee.getRecipe());
         recipe.merge(Ingredient.CARAMEL_SYRUP, 1, Integer::sum);
-
         return recipe;
     }
 

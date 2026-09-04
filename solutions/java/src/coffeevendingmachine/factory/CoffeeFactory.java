@@ -1,8 +1,8 @@
 package coffeevendingmachine.factory;
 
+import coffeevendingmachine.decorator.Coffee;
 import coffeevendingmachine.enums.CoffeeType;
 import coffeevendingmachine.templatemethod.Cappuccino;
-import coffeevendingmachine.decorator.Coffee;
 import coffeevendingmachine.templatemethod.Espresso;
 import coffeevendingmachine.templatemethod.Latte;
 

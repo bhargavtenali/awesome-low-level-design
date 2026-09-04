@@ -6,40 +6,39 @@ import coffeevendingmachine.decorator.Coffee;
 
 public class PaidState implements VendingMachineState {
     @Override
-    public void selectCoffee(CoffeeVendingMachine m, Coffee c) {
+    public void selectCoffee(CoffeeVendingMachine machine, Coffee coffee) {
         System.out.println("Cannot select another coffee now.");
     }
 
     @Override
-    public void insertMoney(CoffeeVendingMachine m, int a) {
+    public void insertMoney(CoffeeVendingMachine machine, int amount) {
         System.out.println("Already paid. Please wait for your coffee.");
     }
 
     @Override
     public void dispenseCoffee(CoffeeVendingMachine machine) {
-        Inventory inventory = Inventory.getInstance();
-        Coffee coffeeToDispense = machine.getSelectedCoffee();
-
-        if (!inventory.hasIngredients(coffeeToDispense.getRecipe())) {
-            System.out.println("Sorry, out of ingredients for " + coffeeToDispense.getCoffeeType());
-            machine.setState(new OutOfIngredientState());
-            machine.getState().cancel(machine);
+        Inventory inventory = machine.getInventory();
+        Coffee coffee = machine.getSelectedCoffee();
+        if (!inventory.tryDeductIngredients(coffee.getRecipe())) {
+            System.out.println("Sorry, out of ingredients for " + coffee.getCoffeeType());
+            System.out.println("Refunding " + machine.getMoneyInserted());
+            machine.reset();
+            machine.setState(new ReadyState());
             return;
         }
-        inventory.deductIngredients(coffeeToDispense.getRecipe());
-
-        coffeeToDispense.prepare();
-
-        int change = machine.getMoneyInserted() - coffeeToDispense.getPrice();
-        if (change > 0)
+        coffee.prepare();
+        int change = machine.getMoneyInserted() - coffee.getPrice();
+        if (change > 0) {
             System.out.println("Returning change: " + change);
-
+        }
         machine.reset();
         machine.setState(new ReadyState());
     }
 
     @Override
-    public void cancel(CoffeeVendingMachine m) {
-        new SelectingState().cancel(m); // Same as in SelectingState
+    public void cancel(CoffeeVendingMachine machine) {
+        System.out.println("Transaction cancelled. Refunding " + machine.getMoneyInserted());
+        machine.reset();
+        machine.setState(new ReadyState());
     }
 }

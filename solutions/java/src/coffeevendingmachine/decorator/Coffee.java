@@ -5,34 +5,40 @@ import coffeevendingmachine.enums.Ingredient;
 import java.util.Map;
 
 public abstract class Coffee {
-    protected String coffeeType = "Unknown Coffee";
+    private final String coffeeType;
 
     protected Coffee(String coffeeType) {
         this.coffeeType = coffeeType;
     }
 
-    public String getCoffeeType() {
-        return coffeeType;
-    }
-
-    // The Template Method
-    public void prepare() {
-        System.out.println("\nPreparing your " + this.getCoffeeType() + "...");
+    public final void prepare() {
+        System.out.println("\nPreparing your " + coffeeType + "...");
         grindBeans();
         brew();
-        addCondiments(); // The "hook" for base coffee types
+        addCondiments();
         pourIntoCup();
-        System.out.println(this.getCoffeeType() + " is ready!");
+        System.out.println(coffeeType + " is ready!");
     }
 
-    // Common steps
-    private void grindBeans() { System.out.println("- Grinding fresh coffee beans."); }
-    private void brew() { System.out.println("- Brewing coffee with hot water."); }
-    private void pourIntoCup() { System.out.println("- Pouring into a cup."); }
+    private void grindBeans() {
+        System.out.println("- Grinding fresh coffee beans.");
+    }
 
-    // Abstract step to be implemented by subclasses
+    private void brew() {
+        System.out.println("- Brewing coffee with hot water.");
+    }
+
+    private void pourIntoCup() {
+        System.out.println("- Pouring into a cup.");
+    }
+
     protected abstract void addCondiments();
 
     public abstract int getPrice();
+
     public abstract Map<Ingredient, Integer> getRecipe();
+
+    public String getCoffeeType() {
+        return coffeeType;
+    }
 }

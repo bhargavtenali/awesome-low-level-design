@@ -10,7 +10,6 @@ public class Latte extends Coffee {
         super("Latte");
     }
 
-    // Latte's implementation of the template hook
     @Override
     protected void addCondiments() {
         System.out.println("- Adding steamed milk.");
@@ -23,6 +22,9 @@ public class Latte extends Coffee {
 
     @Override
     public Map<Ingredient, Integer> getRecipe() {
-        return Map.of(Ingredient.COFFEE_BEANS, 7, Ingredient.WATER, 30, Ingredient.MILK, 150);
+        return Map.of(
+                Ingredient.COFFEE_BEANS, 7,
+                Ingredient.WATER, 30,
+                Ingredient.MILK, 150);
     }
 }
