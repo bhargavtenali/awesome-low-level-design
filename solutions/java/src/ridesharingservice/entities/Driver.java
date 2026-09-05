@@ -3,7 +3,6 @@ package ridesharingservice.entities;
 import ridesharingservice.enums.DriverStatus;
 
 public class Driver extends User {
-
     private final Vehicle vehicle;
     private Location currentLocation;
     private DriverStatus status;
@@ -13,9 +12,7 @@ public class Driver extends User {
             String contact,
             Vehicle vehicle,
             Location initialLocation) {
-
         super(name, contact);
-
         this.vehicle = vehicle;
         this.currentLocation = initialLocation;
         this.status = DriverStatus.OFFLINE;
@@ -29,6 +26,11 @@ public class Driver extends User {
         return status;
     }
 
+    public void setStatus(DriverStatus status) {
+        this.status = status;
+        System.out.println("Driver " + getName() + " is now " + status);
+    }
+
     public synchronized boolean tryAssignTrip() {
         if (status != DriverStatus.ONLINE) {
             return false;
@@ -36,13 +38,6 @@ public class Driver extends User {
         status = DriverStatus.IN_TRIP;
         System.out.println("Driver " + getName() + " is now " + status);
         return true;
-    }
-
-    public void setStatus(DriverStatus status) {
-        this.status = status;
-
-        System.out.println(
-                "Driver " + getName() + " is now " + status);
     }
 
     public Location getCurrentLocation() {

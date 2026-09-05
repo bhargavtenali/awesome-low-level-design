@@ -1,6 +1,5 @@
-package coffeevendingmachine.templatemethod;
+package coffeevendingmachine.coffee;
 
-import coffeevendingmachine.decorator.Coffee;
 import coffeevendingmachine.enums.Ingredient;
 
 import java.util.Map;
@@ -12,7 +11,7 @@ public class Cappuccino extends Coffee {
     }
 
     @Override
-    protected void addCondiments() {
+    public void addCondiments() {
         System.out.println("- Adding steamed milk and foam.");
     }
 

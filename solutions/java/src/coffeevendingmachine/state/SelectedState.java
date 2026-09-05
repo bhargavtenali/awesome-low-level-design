@@ -1,9 +1,9 @@
 package coffeevendingmachine.state;
 
 import coffeevendingmachine.CoffeeVendingMachine;
-import coffeevendingmachine.decorator.Coffee;
+import coffeevendingmachine.coffee.Coffee;
 
-public class SelectingState implements VendingMachineState {
+public class SelectedState implements VendingMachineState {
 
     @Override
     public void selectCoffee(CoffeeVendingMachine machine, Coffee coffee) {

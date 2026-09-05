@@ -89,7 +89,7 @@ architecture.
 **Why:** A Vending Machine inherently acts as a finite state machine. A user cannot dispense coffee before paying, and
 cannot pay if an item hasn't been selected. **How:** We implemented a `VendingMachineState` interface with methods like
 `selectCoffee()`, `insertMoney()`, `dispenseCoffee()`, and `cancel()`. The `CoffeeVendingMachine` delegates these calls
-to its current state object (`ReadyState`, `SelectingState`, `PaidState`, `OutOfIngredientState`).
+to its current state object (`ReadyState`, `SelectedState`, `PaidState`, `OutOfIngredientState`).
 
 ### 2. Decorator Pattern
 
@@ -220,9 +220,9 @@ stateDiagram-v2
 2. **Selection:** A user selects a "Latte" with "Extra Sugar".
     - The `CoffeeVendingMachine` asks the `CoffeeFactory` for a Latte.
     - It then wraps the Latte object inside an `ExtraSugarDecorator`.
-    - The machine shifts into `SelectingState`.
+    - The machine shifts into `SelectedState`.
 3. **Payment:** The user inserts money.
-    - The machine tracks the money. If the amount is less than the total required price, it stays in `SelectingState`
+    - The machine tracks the money. If the amount is less than the total required price, it stays in `SelectedState`
       and asks for more.
     - Once the total inserted amount equals or exceeds the required price, it automatically transitions into the
       `PaidState`.

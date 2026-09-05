@@ -1,10 +1,9 @@
 package coffeevendingmachine.state;
 
 import coffeevendingmachine.CoffeeVendingMachine;
-import coffeevendingmachine.decorator.Coffee;
+import coffeevendingmachine.coffee.Coffee;
 
 public interface VendingMachineState {
-
     void selectCoffee(CoffeeVendingMachine machine, Coffee coffee);
 
     void insertMoney(CoffeeVendingMachine machine, int amount);

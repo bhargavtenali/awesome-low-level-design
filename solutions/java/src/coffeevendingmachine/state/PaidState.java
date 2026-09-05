@@ -2,7 +2,7 @@ package coffeevendingmachine.state;
 
 import coffeevendingmachine.CoffeeVendingMachine;
 import coffeevendingmachine.Inventory;
-import coffeevendingmachine.decorator.Coffee;
+import coffeevendingmachine.coffee.Coffee;
 
 public class PaidState implements VendingMachineState {
     @Override

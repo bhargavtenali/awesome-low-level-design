@@ -1,20 +1,18 @@
 package ridesharingservice.entities;
 
-import java.util.UUID;
-
 import ridesharingservice.enums.TripStatus;
 import ridesharingservice.state.RequestedState;
 import ridesharingservice.state.TripState;
 
-public class Trip {
+import java.util.UUID;
 
+public class Trip {
     private final String id;
     private final Rider rider;
-    private Driver driver;
     private final Location pickupLocation;
     private final Location dropoffLocation;
     private final double fare;
-
+    private Driver driver;
     private TripStatus status;
     private TripState currentState;
 
@@ -55,6 +53,10 @@ public class Trip {
         return driver;
     }
 
+    public void setDriver(Driver driver) {
+        this.driver = driver;
+    }
+
     public Location getPickupLocation() {
         return pickupLocation;
     }
@@ -71,16 +73,12 @@ public class Trip {
         return status;
     }
 
-    public void setState(TripState state) {
-        this.currentState = state;
-    }
-
     public void setStatus(TripStatus status) {
         this.status = status;
     }
 
-    public void setDriver(Driver driver) {
-        this.driver = driver;
+    public void setState(TripState state) {
+        this.currentState = state;
     }
 
     @Override

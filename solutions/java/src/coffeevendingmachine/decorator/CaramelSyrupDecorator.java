@@ -1,5 +1,6 @@
 package coffeevendingmachine.decorator;
 
+import coffeevendingmachine.coffee.Coffee;
 import coffeevendingmachine.enums.Ingredient;
 
 import java.util.HashMap;
@@ -27,7 +28,7 @@ public class CaramelSyrupDecorator extends Coffee {
     }
 
     @Override
-    protected void addCondiments() {
+    public void addCondiments() {
         coffee.addCondiments();
         System.out.println("- Adding caramel syrup.");
     }

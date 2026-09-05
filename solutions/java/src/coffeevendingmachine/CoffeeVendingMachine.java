@@ -1,7 +1,7 @@
 package coffeevendingmachine;
 
+import coffeevendingmachine.coffee.Coffee;
 import coffeevendingmachine.decorator.CaramelSyrupDecorator;
-import coffeevendingmachine.decorator.Coffee;
 import coffeevendingmachine.decorator.ExtraSugarDecorator;
 import coffeevendingmachine.enums.CoffeeType;
 import coffeevendingmachine.enums.ToppingType;
@@ -57,6 +57,11 @@ public class CoffeeVendingMachine {
         state.cancel(this);
     }
 
+    public synchronized void reset() {
+        selectedCoffee = null;
+        moneyInserted = 0;
+    }
+
     public synchronized VendingMachineState getState() {
         return state;
     }
@@ -83,10 +88,5 @@ public class CoffeeVendingMachine {
 
     public synchronized Inventory getInventory() {
         return inventory;
-    }
-
-    public synchronized void reset() {
-        selectedCoffee = null;
-        moneyInserted = 0;
     }
 }

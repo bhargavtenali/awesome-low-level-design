@@ -1,26 +1,20 @@
 package ridesharingservice;
 
+import ridesharingservice.entities.*;
+import ridesharingservice.enums.DriverStatus;
+import ridesharingservice.enums.RideType;
+import ridesharingservice.strategy.matching.DriverMatchingStrategy;
+import ridesharingservice.strategy.pricing.PricingStrategy;
+
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.concurrent.ConcurrentHashMap;
 
-import ridesharingservice.entities.Driver;
-import ridesharingservice.entities.Location;
-import ridesharingservice.entities.Trip;
-import ridesharingservice.entities.Vehicle;
-import ridesharingservice.enums.DriverStatus;
-import ridesharingservice.enums.RideType;
-import ridesharingservice.entities.Rider;
-import ridesharingservice.strategy.matching.DriverMatchingStrategy;
-import ridesharingservice.strategy.pricing.PricingStrategy;
-
 public class RideSharingService {
-
     private final Map<String, Rider> riders = new ConcurrentHashMap<>();
     private final Map<String, Driver> drivers = new ConcurrentHashMap<>();
     private final Map<String, Trip> trips = new ConcurrentHashMap<>();
-
     private final PricingStrategy pricingStrategy;
     private final DriverMatchingStrategy driverMatchingStrategy;
 
@@ -34,10 +28,8 @@ public class RideSharingService {
     }
 
     public Rider registerRider(String name, String contact) {
-
         Rider rider = new Rider(name, contact);
         riders.put(rider.getId(), rider);
-
         return rider;
     }
 
@@ -102,9 +94,9 @@ public class RideSharingService {
         Driver driver = trip.getDriver();
         driver.setStatus(DriverStatus.ONLINE);
         driver.setCurrentLocation(trip.getDropoffLocation());
+        driver.addTripToHistory(trip);
 
         Rider rider = trip.getRider();
-        driver.addTripToHistory(trip);
         rider.addTripToHistory(trip);
         System.out.println("Driver " + driver.getName() + " is now back online at " + driver.getCurrentLocation());
     }

@@ -1,12 +1,8 @@
 package ridesharingservice;
 
-import ridesharingservice.entities.Driver;
-import ridesharingservice.entities.Location;
-import ridesharingservice.entities.Trip;
-import ridesharingservice.entities.Vehicle;
+import ridesharingservice.entities.*;
 import ridesharingservice.enums.DriverStatus;
 import ridesharingservice.enums.RideType;
-import ridesharingservice.entities.Rider;
 import ridesharingservice.strategy.matching.NearestDriverMatchingStrategy;
 import ridesharingservice.strategy.pricing.VehicleBasedPricingStrategy;
 
@@ -44,7 +40,6 @@ public class RideSharingServiceDemo {
         // 4. Alice requests a ride
         Location pickupLocation = new Location(0.0, 0.0);
         Location dropoffLocation = new Location(5.0, 5.0);
-
         // Rider wants a SEDAN
         Trip trip1 = service.requestRide(alice.getId(), pickupLocation, dropoffLocation, RideType.SEDAN);
 
@@ -73,7 +68,7 @@ public class RideSharingServiceDemo {
                 new Location(8.0, 8.0),
                 RideType.SUV);
 
-        if(trip2 != null) {
+        if (trip2 != null) {
             // Only Charlie is available for an SUV ride
             service.acceptRide(charlie.getId(), trip2.getId());
             service.startTrip(trip2.getId());

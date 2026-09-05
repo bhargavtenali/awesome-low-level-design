@@ -1,4 +1,4 @@
-package coffeevendingmachine.decorator;
+package coffeevendingmachine.coffee;
 
 import coffeevendingmachine.enums.Ingredient;
 
@@ -32,7 +32,7 @@ public abstract class Coffee {
         System.out.println("- Pouring into a cup.");
     }
 
-    protected abstract void addCondiments();
+    public abstract void addCondiments();
 
     public abstract int getPrice();
 
